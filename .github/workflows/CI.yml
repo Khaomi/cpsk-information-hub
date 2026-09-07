@@ -17,11 +17,15 @@ jobs:
       - name: Setup node & pnpm
         uses: pnpm/setup@v1
         with:
+          run_install: false
+          cache: true
           cache-dependency-path: source/pnpm-lock.yaml
           package-json-file: source/package.json
-          run_install: |
-            - cwd: source
-          cache: true
+        
+      - name: Install dependencies
+        working-directory: source
+        run: |
+          pnpm install --frozen-lockfile
 
       - name: Run lint
         working-directory: source
