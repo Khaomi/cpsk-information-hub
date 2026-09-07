@@ -18,11 +18,13 @@ jobs:
         uses: pnpm/setup@v1
         with:
           cache: true
-      
+
       - name: Run lint
+        working-directory: source
         run: |
           pnpm run lint
       
       - name: Test build
+        working-directory: source
         run: |
           pnpm run build
