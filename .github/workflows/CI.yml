@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
       
       - name: Setup node & pnpm
-        uses: pnpm/setup@v2
+        uses: pnpm/setup@v2.1.0
         with:
           working-directory: source
           cache: true
