@@ -10,6 +10,8 @@ This project is a software for managing information within the Computer Engineer
 - [Software Requirement Specification](docs/UnpaidInternship_SRS_document.pdf)
 - [Iteration Report: Iteration 1](docs/UnpaidInternship_SRS_document.pdf)
 - [DrawIO diagram](docs/ISP.drawio)
+- [Gantt Chart](docs/CPSK-HUB_Gantt_Chart.json)
+- [SQD](docs/SQD1%20%26%20SQD%204.drawio)
 
 ## Project Members
 
