@@ -1,0 +1,288 @@
+{
+  "version": "31.4.4",
+  "pages": [
+    {
+      "id": "PWfRJlXsok52mi_alyv_",
+      "name": "Page-1",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-6",
+          "type": "edge",
+          "parent": "1",
+          "source": "DbaQC2HuVPGp9wtze8lT-1"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-1",
+          "type": "node",
+          "parent": "1",
+          "label": "Student/Staff",
+          "html": "<font style=\"font-size: 18px;\">Student/Staff</font>"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-9",
+          "type": "edge",
+          "parent": "1",
+          "source": "DbaQC2HuVPGp9wtze8lT-2"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-2",
+          "type": "node",
+          "parent": "1",
+          "label": "UI/Client",
+          "html": "<font style=\"font-size: 18px;\">UI/Client</font>"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-19",
+          "type": "edge",
+          "parent": "1",
+          "source": "DbaQC2HuVPGp9wtze8lT-3"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-3",
+          "type": "node",
+          "parent": "1",
+          "label": "Database",
+          "html": "<span style=\"font-size: 18px;\">Database</span>"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-20",
+          "type": "edge",
+          "parent": "1",
+          "source": "DbaQC2HuVPGp9wtze8lT-12"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-4",
+          "type": "node",
+          "parent": "1",
+          "label": "Google OAuth",
+          "html": "<font style=\"font-size: 18px;\">Google OAuth</font>"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-5",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-7",
+          "type": "edge",
+          "parent": "1",
+          "source": "DbaQC2HuVPGp9wtze8lT-5",
+          "label": "1. Login (OAuth)",
+          "html": "<font style=\"font-size: 14px;\">1. Login (OAuth)</font>"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-8",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-11",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-15",
+          "type": "edge",
+          "parent": "1",
+          "label": "3. Return Tokens &amp; User Email"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-22",
+          "type": "edge",
+          "parent": "1",
+          "source": "DbaQC2HuVPGp9wtze8lT-4",
+          "target": "DbaQC2HuVPGp9wtze8lT-12"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-12",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-10",
+          "type": "edge",
+          "parent": "1",
+          "source": "DbaQC2HuVPGp9wtze8lT-8",
+          "target": "DbaQC2HuVPGp9wtze8lT-12",
+          "label": "2. Authenticate()",
+          "html": "<div style=\"\"><span style=\"font-size: 14px; background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));\">2. Authenticate()</span></div>"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-13",
+          "type": "edge",
+          "parent": "1",
+          "label": "4. VerifyDomain(email)",
+          "html": "<div style=\"\"><span style=\"font-size: 14px; background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));\">4. VerifyDomain(email)</span></div>"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-23",
+          "type": "edge",
+          "parent": "1",
+          "label": "5. Access Granted (JWT Session)"
+        },
+        {
+          "id": "DbaQC2HuVPGp9wtze8lT-24",
+          "type": "node",
+          "parent": "1",
+          "label": "(Or Error 403 if invalid domain)",
+          "html": "<font style=\"font-size: 14px;\">(Or Error 403 if invalid domain)</font>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-8",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-9"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-9",
+          "type": "node",
+          "parent": "1",
+          "label": "Admin",
+          "html": "<span style=\"font-size: 18px;\">Admin</span>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-10",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-11"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-11",
+          "type": "node",
+          "parent": "1",
+          "label": "AdminUI",
+          "html": "<font style=\"font-size: 18px;\">AdminUI</font>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-12",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-13"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-13",
+          "type": "node",
+          "parent": "1",
+          "label": "AuthModule",
+          "html": "<font style=\"font-size: 18px;\">AuthModule</font>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-14",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-22"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-15",
+          "type": "node",
+          "parent": "1",
+          "label": "TagModule",
+          "html": "<span style=\"font-size: 18px;\">TagModule</span>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-16",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-17",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-16",
+          "label": "1. Delete Tag",
+          "html": "<font style=\"font-size: 14px;\">1. Delete Tag</font>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-18",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-19",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-20",
+          "type": "edge",
+          "parent": "1",
+          "label": "5. Verify Admin\nRole OK",
+          "html": "5. Verify Admin<br><div style=\"text-align: left;\"><span style=\"background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));\">Role OK</span></div>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-21",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-15",
+          "target": "8NSgV-Iwlf6_-mLo8lif-22"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-22",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-23",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-18",
+          "target": "8NSgV-Iwlf6_-mLo8lif-22",
+          "label": "2. RemoveTag(tagID)",
+          "html": "<div style=\"\"><span style=\"font-size: 14px; background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));\">2. RemoveTag(tagID)</span></div>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-24",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-27"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-25",
+          "type": "node",
+          "parent": "1",
+          "label": "Database",
+          "html": "<span style=\"font-size: 18px;\">Database</span>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-26",
+          "type": "edge",
+          "parent": "1",
+          "source": "8NSgV-Iwlf6_-mLo8lif-25",
+          "target": "8NSgV-Iwlf6_-mLo8lif-27"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-27",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-28",
+          "type": "edge",
+          "parent": "1",
+          "target": "8NSgV-Iwlf6_-mLo8lif-18",
+          "label": "6. Feedback",
+          "html": "<span style=\"font-size: 14px;\">6. Feedback</span>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-29",
+          "type": "edge",
+          "parent": "1",
+          "target": "8NSgV-Iwlf6_-mLo8lif-27",
+          "label": "3. Soft Delete/ Mark Inactive",
+          "html": "<font style=\"font-size: 14px;\">3. Soft Delete/ Mark Inactive</font>"
+        },
+        {
+          "id": "8NSgV-Iwlf6_-mLo8lif-30",
+          "type": "edge",
+          "parent": "1",
+          "target": "8NSgV-Iwlf6_-mLo8lif-22",
+          "label": "4. Acknowledge"
+        }
+      ]
+    }
+  ]
+}
