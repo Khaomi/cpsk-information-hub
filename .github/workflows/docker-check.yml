@@ -1,6 +1,9 @@
 name: Docker Build Check
 
-on: [push, pull_request]
+on: [push, pull_request_target, workflow_dispatch]
+
+permissions:
+  contents: read
 
 jobs:
   validate-docker:
