@@ -17,8 +17,10 @@ jobs:
       - name: Setup node & pnpm
         uses: pnpm/setup@v1
         with:
-          cache-dependency-path: ./source/pnpm-lock.yaml
-          package-json-file: ./source/package.json
+          cache-dependency-path: source/pnpm-lock.yaml
+          package-json-file: source/package.json
+          run_install: |
+            - cwd: source
           cache: true
 
       - name: Run lint
