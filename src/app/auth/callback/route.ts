@@ -9,8 +9,7 @@ export async function GET(request: NextRequest) {
 
   const forwardedProto = request.headers.get("x-forwarded-proto") ?? "http";
   const forwardedHost = request.headers.get("x-forwarded-host") ?? "localhost:3000";
-  const siteUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ?? `${forwardedProto}://${forwardedHost}`;
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? `${forwardedProto}://${forwardedHost}`;
 
   if (code) {
     const supabase = await createClient();
