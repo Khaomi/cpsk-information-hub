@@ -17,10 +17,8 @@ jobs:
       - name: Setup node & pnpm
         uses: pnpm/setup@v1
         with:
-          install: false
+          working-directory: source
           cache: true
-          cache-dependency-path: source/pnpm-lock.yaml
-          package-json-file: source/package.json
         
       - name: Install dependencies
         working-directory: source
