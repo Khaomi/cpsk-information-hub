@@ -3,7 +3,11 @@ import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from "next-themes";
 import { Geist } from "next/font/google";
 import type { Metadata } from "next";
-
+import { Suspense } from "react";
+import AppShell from "@/src/components/app-shell";
+import { MobileFiltersProvider } from "@/src/components/mobile-filters-context";
+import { RoleProvider } from "@/src/components/role-context";
+import RoleSwitcher from "@/src/components/role-switcher";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -12,7 +16,7 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
+  title: "CPSK — Department Information & Communication Hub",
   description: "The fastest way to build apps with Next.js and Supabase",
 };
 
@@ -38,7 +42,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <RoleProvider>
+            <MobileFiltersProvider>
+              <Suspense fallback={null}>
+                <AppShell>{children}</AppShell>
+              </Suspense>
+            </MobileFiltersProvider>
+            <RoleSwitcher />
+          </RoleProvider>
         </ThemeProvider>
       </body>
     </html>
