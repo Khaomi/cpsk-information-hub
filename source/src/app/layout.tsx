@@ -7,7 +7,6 @@ import { Suspense } from "react";
 import AppShell from "@/src/components/app-shell";
 import { MobileFiltersProvider } from "@/src/components/mobile-filters-context";
 import { RoleProvider } from "@/src/components/role-context";
-import RoleSwitcher from "@/src/components/role-switcher";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -48,7 +47,6 @@ export default function RootLayout({
                 <AppShell>{children}</AppShell>
               </Suspense>
             </MobileFiltersProvider>
-            <RoleSwitcher />
           </RoleProvider>
         </ThemeProvider>
       </body>

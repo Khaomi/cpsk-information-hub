@@ -1,11 +1,20 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import FilterableLayout from "@/src/components/filterable-layout";
-import { ANNOUNCEMENTS } from "@/src/lib/announcements";
+import {
+  Announcement,
+  deleteAnnouncement,
+  fetchAnnouncementById,
+  formatDisplayDate,
+  setAnnouncementActive,
+  setAnnouncementArchived,
+  subscribeToAnnouncement,
+} from "@/src/lib/announcements";
+import { colorForTag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
 
 type Props = {
@@ -17,17 +26,47 @@ type Props = {
 export default function AnnouncementDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { role } = useRole();
-  const isStaff = role === "staff" || role === "admin";
+  const { isStaff } = useRole();
 
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  const [loading, setLoading] = useState(true);
   // confirming: which confirmation box is open, if any
   const [confirming, setConfirming] = useState<"archive" | "delete" | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
-  const announcement = ANNOUNCEMENTS.find((a) => a.id === id);
+
+  useEffect(() => {
+    fetchAnnouncementById(id)
+      .then(setAnnouncement)
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // Live-refresh this announcement (and its tags) when it changes elsewhere —
+  // e.g. another staff member archives or edits it while it's open here.
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = (): void => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => fetchAnnouncementById(id).then(setAnnouncement), 300);
+    };
+
+    const unsubscribe = subscribeToAnnouncement(id, scheduleReload);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      unsubscribe();
+    };
+  }, [id]);
 
   const handleApplyFilter = (selectedTags: string[]): void => {
     console.log("Applying filter:", selectedTags);
   };
+
+  if (loading) {
+    return (
+      <FilterableLayout onApplyFilter={handleApplyFilter}>
+        <p className="text-sm text-stone-500">Loading…</p>
+      </FilterableLayout>
+    );
+  }
 
   if (!announcement) {
     return (
@@ -37,38 +76,27 @@ export default function AnnouncementDetailPage({ params }: Props) {
     );
   }
 
-  // TODO: replace all direct mutations below with real API calls once the
-  // backend is connected. Replacing the entry in the shared mock array is a
-  // temporary shortcut for demo purposes only — the object bound to
-  // `announcement` above is never mutated in place, since it was produced
-  // during render (React flags in-place mutation of it as a bug).
-  const setStatus = (status: "draft" | "published" | "archived"): void => {
-    const index = ANNOUNCEMENTS.findIndex((a) => a.id === id);
-    if (index !== -1) ANNOUNCEMENTS[index] = { ...ANNOUNCEMENTS[index], status };
-  };
-
-  const handleArchive = (): void => {
-    setStatus("archived");
+  const handleArchive = async (): Promise<void> => {
+    await setAnnouncementArchived(announcement.id, announcement.startsAt);
     setConfirming(null);
     router.push("/announcements");
   };
 
-  const handleDeletePermanently = (): void => {
-    const index = ANNOUNCEMENTS.findIndex((a) => a.id === id);
-    if (index !== -1) ANNOUNCEMENTS.splice(index, 1);
+  const handleDeletePermanently = async (): Promise<void> => {
+    await deleteAnnouncement(announcement.id);
     setConfirming(null);
     router.push("/announcements");
   };
 
   // Shared by "Publish" (draft → published) and "Restore" (archived → published).
   // SRS-9 still applies either way: at least one tag is required.
-  const handlePublish = (): void => {
+  const handlePublish = async (): Promise<void> => {
     if (announcement.tags.length === 0) {
       setPublishError("Select at least one tag before publishing.");
       return;
     }
     setPublishError(null);
-    setStatus("published");
+    await setAnnouncementActive(announcement.id);
     router.push("/announcements");
   };
 
@@ -90,7 +118,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
 
           {isStaff && (
             <div className="flex items-center gap-3 flex-wrap">
-              {announcement.status === "draft" && (
+              {announcement.status === "DRAFT" && (
                 <button
                   type="button"
                   onClick={handlePublish}
@@ -99,7 +127,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
                   Publish
                 </button>
               )}
-              {announcement.status === "archived" && (
+              {announcement.status === "ARCHIVED" && (
                 <button
                   type="button"
                   onClick={handlePublish}
@@ -114,7 +142,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
               >
                 Edit
               </Link>
-              {announcement.status !== "archived" ? (
+              {announcement.status !== "ARCHIVED" ? (
                 <button
                   type="button"
                   onClick={() => setConfirming("archive")}
@@ -194,26 +222,25 @@ export default function AnnouncementDetailPage({ params }: Props) {
 
         <div className="flex flex-wrap gap-1.5 mb-2">
           {announcement.tags.map((tag) => (
-            <span key={tag.label} className={`text-xs font-medium px-2 py-0.5 rounded-full ${tag.color}`}>
-              {tag.label}
+            <span key={tag.id} className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
+              {tag.name}
             </span>
           ))}
         </div>
 
         <p className="text-xs text-stone-400 mb-4">
-          Posted on {announcement.publishedDate} by {announcement.author}
+          Posted on {formatDisplayDate(announcement.startsAt)} by {announcement.authorName}
         </p>
 
-        <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-line mb-4">{announcement.body}</p>
-
         {announcement.imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={announcement.imageUrl}
             alt=""
-            className="w-full rounded-lg border border-stone-200"
+            className="mb-4 max-h-96 w-full rounded-lg border border-stone-200 object-cover"
           />
         )}
+
+        <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-line mb-4">{announcement.body}</p>
       </article>
     </FilterableLayout>
   );

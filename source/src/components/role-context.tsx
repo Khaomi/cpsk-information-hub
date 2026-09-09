@@ -1,22 +1,82 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { createClient } from "@/src/lib/supabase/client";
 
-// TODO: remove this entire mock system once real sessions provide the role.
-// At that point, role should come from the authenticated user's Supabase
-// session/profile, not from a manually-toggled switcher.
-export type Role = "student" | "staff" | "admin";
+export type Role = "admin" | "lecturer" | "ta" | "student";
+
+export type AuthUser = {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+};
 
 type RoleContextValue = {
+  user: AuthUser | null;
   role: Role;
-  setRole: (role: Role) => void;
+  isStaff: boolean;
+  loading: boolean;
 };
 
 const RoleContext = createContext<RoleContextValue | null>(null);
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<Role>("student");
-  return <RoleContext.Provider value={{ role, setRole }}>{children}</RoleContext.Provider>;
+  const [value, setValue] = useState<RoleContextValue>({
+    user: null,
+    role: "student",
+    isStaff: false,
+    loading: true,
+  });
+
+  useEffect(() => {
+    const supabase = createClient();
+    let cancelled = false;
+
+    const load = async (): Promise<void> => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        if (!cancelled) setValue({ user: null, role: "student", isStaff: false, loading: false });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profile")
+        .select("role")
+        .eq("id", authUser.id)
+        .single();
+
+      const role = profile?.role ?? "student";
+      const user: AuthUser = {
+        id: authUser.id,
+        email: authUser.email ?? null,
+        displayName:
+          (authUser.user_metadata?.display_name as string | undefined) ??
+          (authUser.user_metadata?.full_name as string | undefined) ??
+          authUser.email?.split("@")[0] ??
+          null,
+      };
+
+      if (!cancelled) setValue({ user, role, isStaff: role !== "student", loading: false });
+    };
+
+    load();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      load();
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
 }
 
 export function useRole(): RoleContextValue {

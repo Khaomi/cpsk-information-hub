@@ -34,6 +34,11 @@ CREATE POLICY "Creator and admin can delete attachments"
 
 ------------------------------------------------------------------------------------
 
+GRANT SELECT ON public.attachment TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.attachment TO authenticated;
+
+------------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION public.update_attachment_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN

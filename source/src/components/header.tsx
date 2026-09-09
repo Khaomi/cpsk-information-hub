@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Search, User, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut, Search, User, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
+import { createClient } from "@/src/lib/supabase/client";
 
 type NavItem = {
   label: string;
@@ -23,11 +24,19 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const { open: openMobileFilters } = useMobileFilters();
-  const { role } = useRole();
-  const isStaff = role === "staff" || role === "admin";
+  const { user, isStaff } = useRole();
+
+  const handleAccountClick = async (): Promise<void> => {
+    if (!user) return;
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+    router.refresh();
+  };
 
   return (
     <header className="bg-white border-b border-stone-200">
@@ -51,13 +60,25 @@ export default function Header() {
               <span className="hidden sm:inline">New</span>
             </Link>
           )}
-          <button
-            type="button"
-            aria-label="Account menu"
-            className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
-          >
-            <User className="w-4 h-4 text-stone-600" />
-          </button>
+          {user ? (
+            <button
+              type="button"
+              onClick={handleAccountClick}
+              aria-label="Sign out"
+              title={user.displayName ?? user.email ?? "Sign out"}
+              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+            >
+              <LogOut className="w-4 h-4 text-stone-600" />
+            </button>
+          ) : (
+            <Link
+              href="/auth/login"
+              aria-label="Sign in"
+              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+            >
+              <User className="w-4 h-4 text-stone-600" />
+            </Link>
+          )}
         </div>
       </div>
 
