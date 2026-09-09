@@ -13,6 +13,8 @@ SELECT
   u.email AS author_email,
   a.starts_at,
   a.ends_at,
+  a.draft_starts_at,
+  a.draft_ends_at,
   a.created_at,
   a.updated_at,
   CASE

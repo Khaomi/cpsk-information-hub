@@ -20,12 +20,12 @@ CREATE POLICY "Users and admins can update profiles"
   USING (
     auth.uid() = id
     OR
-    (SELECT role FROM public.profile WHERE id = auth.uid()) IN (
-      'admin'::public.app_role,
-      'lecturer'::public.app_role,
-      'ta'::public.app_role
-    )
+    (SELECT role FROM public.profile WHERE id = auth.uid()) = 'admin'::public.app_role
   );
+
+------------------------------------------------------------------------------------
+
+GRANT SELECT, UPDATE ON public.profile TO authenticated;
 
 ------------------------------------------------------------------------------------
 
@@ -44,13 +44,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.check_profile_role_update()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.role IS DISTINCT FROM OLD.role THEN
-    IF NOT (public.is_admin() OR auth.role() = 'service_role') THEN
+    IF NOT (
+      EXISTS (
+        SELECT 1 FROM public.profile
+        WHERE id = auth.uid() AND role = 'admin'::public.app_role
+      )
+      OR auth.role() = 'service_role'
+    ) THEN
       RAISE EXCEPTION 'Only administrators can modify user roles.';
     END IF;
   END IF;

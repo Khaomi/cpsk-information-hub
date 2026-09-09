@@ -19,6 +19,13 @@ export function GoogleAuthButton() {
       provider: "google",
       options: {
         redirectTo: redirectURL,
+        // Without this, Google silently re-authenticates with whichever
+        // account is already active in the browser instead of letting the
+        // user pick — this is what makes re-login always land on the same
+        // email even after signing out of the app.
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
 

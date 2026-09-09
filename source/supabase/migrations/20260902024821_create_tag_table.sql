@@ -35,6 +35,11 @@ CREATE POLICY "Creator and admin can delete tags"
 
 ------------------------------------------------------------------------------------
 
+GRANT SELECT ON public.tag TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.tag TO authenticated;
+
+------------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION public.update_tag_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
