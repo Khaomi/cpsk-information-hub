@@ -20,7 +20,7 @@ const CONTENT_TYPES: ContentTypeOption[] = [
   {
     label: "FAQ",
     description: "A recurring question and its answer",
-    href: null,
+    href: "/faqs/new",
     icon: HelpCircle,
   },
   {
@@ -32,7 +32,7 @@ const CONTENT_TYPES: ContentTypeOption[] = [
   {
     label: "Contact",
     description: "Staff or TA contact details",
-    href: null,
+    href: "/contacts/new",
     icon: Users,
   },
   {
