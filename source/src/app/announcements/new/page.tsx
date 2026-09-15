@@ -14,6 +14,12 @@ export default function NewAnnouncementPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [showDraftToast, setShowDraftToast] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Bumped after every successful save so AnnouncementForm always gets a
+  // fresh instance next time this page is visited — with cacheComponents
+  // enabled, Next.js can reuse this page's rendered tree across navigations
+  // instead of remounting it, which would otherwise leave the form holding
+  // whatever was last typed/published.
+  const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
     if (!loading && !isStaff) {
@@ -36,6 +42,8 @@ export default function NewAnnouncementPage() {
       return;
     }
 
+    setFormKey((k) => k + 1);
+
     if (status === "draft") {
       // Show a brief confirmation before navigating away, so the save
       // action feels acknowledged rather than a silent redirect.
@@ -55,7 +63,7 @@ export default function NewAnnouncementPage() {
         Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected.
       </p>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
-      <AnnouncementForm tags={tags} onSubmit={handleSubmit} onCancel={() => router.push("/announcements")} />
+      <AnnouncementForm key={formKey} tags={tags} onSubmit={handleSubmit} onCancel={() => router.push("/announcements")} />
 
       {showDraftToast && <Toast message="Saved to Drafts" onDismiss={() => setShowDraftToast(false)} />}
     </div>
