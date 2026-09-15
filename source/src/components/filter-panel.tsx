@@ -28,7 +28,7 @@ type FilterPanelProps = {
 };
 
 export default function FilterPanel({ checked, onChange, onApply }: FilterPanelProps) {
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Activity: true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroupOpen = (label: string): void =>
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
