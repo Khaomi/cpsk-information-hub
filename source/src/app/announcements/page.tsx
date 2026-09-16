@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
+
 import {
   Announcement,
   AnnouncementStatus,
@@ -25,6 +27,8 @@ const STATUS_BADGE: Record<AnnouncementStatus, string> = {
 
 export default function AnnouncementsPage() {
   const { user, isStaff } = useRole();
+  const searchParams = useSearchParams();
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
 
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +47,7 @@ export default function AnnouncementsPage() {
     loadItems();
   }, []);
 
-  // Live-refresh the list when any announcement or tag link changes —
+  // Live-refresh the list when any announcement or tag link changes-
   // debounced since a single edit fires several table events at once
   // (an announcement update plus tag inserts/deletes).
   useEffect(() => {
@@ -60,12 +64,17 @@ export default function AnnouncementsPage() {
     };
   }, []);
 
-  const visibleItems =
+  const visibleItems = (
     isStaff && scope === "mine"
       ? items.filter((a) => a.creatorId === user?.id)
       : isStaff
         ? items.filter((a) => a.status !== "DRAFT")
-        : items.filter((a) => a.status === "ACTIVE");
+        : items.filter((a) => a.status === "ACTIVE")
+  ).filter((a) =>
+    query
+      ? a.title.toLowerCase().includes(query) || a.body.toLowerCase().includes(query)
+      : true
+  );
 
   const handleArchive = async (a: Announcement): Promise<void> => {
     await setAnnouncementArchived(a.id, a.startsAt);
@@ -132,7 +141,11 @@ export default function AnnouncementsPage() {
         <p className="text-sm text-stone-500">Loading…</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          {scope === "mine" ? "You haven't created any announcements yet." : "No announcements match your filters right now."}
+          {query
+            ? "No announcements match your search."
+            : scope === "mine"
+              ? "You haven't created any announcements yet."
+              : "No announcements match your filters right now."}
         </div>
       ) : (
         <ul className="space-y-4">

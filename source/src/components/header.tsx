@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LogOut, Search, User, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
@@ -22,13 +22,42 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Resource links", href: "/resources" },
 ];
 
+// Pages that currently read ?query= and filter their own content.
+// TODO: Add to this list as to other page. get keyword search wired up.
+const SEARCHABLE_PATHS = ["/announcements"];
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { open: openMobileFilters } = useMobileFilters();
   const { user, isStaff } = useRole();
+
+  // Only reconcile with the URL on pages that actually support search.
+  // - If we already have a typed keyword (e.g. carried over from a page
+  //   that doesn't search yet) and this page's URL doesn't have it,
+  //   apply it here so the newly-arrived page actually filters.
+  // - If the URL already has a query (e.g. a shared link) and the box
+  //   is empty, reflect that in the box.
+  // Pages that don't support search yet are left alone entirely, so
+  // whatever the user typed stays visible until they land somewhere
+  // that can use it.
+  useEffect(() => {
+    if (!SEARCHABLE_PATHS.includes(pathname)) return;
+
+    const urlQuery = searchParams.get("query") ?? "";
+    if (query && query !== urlQuery) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("query", query);
+      router.replace(`${pathname}?${params.toString()}`);
+    } else if (!query && urlQuery) {
+      setQuery(urlQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const handleAccountClick = async (): Promise<void> => {
     if (!user) return;
@@ -36,6 +65,33 @@ export default function Header() {
     await supabase.auth.signOut();
     router.push("/auth/login");
     router.refresh();
+  };
+
+  // Updates ?query= on the current page, but only if this page is set
+  // up to read it. On pages that aren't searchable yet, this is a
+  // no-op: the box still shows what was typed, there's just nothing to
+  // filter yet.
+  const runSearch = (term: string): void => {
+    if (!SEARCHABLE_PATHS.includes(pathname)) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (term) {
+      params.set("query", term);
+    } else {
+      params.delete("query");
+    }
+    router.push(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
+  const handleQueryChange = (value: string): void => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runSearch(value), 300);
+  };
+
+  const handleSearchSubmit = (): void => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    runSearch(query);
   };
 
   return (
@@ -114,12 +170,16 @@ export default function Header() {
             <input
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearchSubmit();
+              }}
               placeholder="Search..."
               className="w-32 sm:w-48 lg:w-72 rounded-md border-0 bg-white/90 px-3 py-1.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-white/70"
             />
             <button
               type="button"
+              onClick={handleSearchSubmit}
               aria-label="Search"
               className="w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             >
