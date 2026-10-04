@@ -1,19 +1,23 @@
 import { createClient } from "@/src/lib/supabase/client";
-import type { Tables } from "@/types/database.types";
+import type { Database, Tables } from "@/types/database.types";
 import type { FaqFormValues } from "@/src/components/faq-form";
 import type { Tag } from "@/src/lib/tags";
+// Your file (e.g., page.ts or api.ts)
 
-export type FaqStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+
+export type FaqStatus = Database["public"]["Enums"]["faq_status"];
 
 export type Faq = {
   id: string;
   question: string;
-  answer: string;
+  answer: string | null;
   status: FaqStatus;
-  creatorId: string;
+  isAnonymous: boolean;
+  creatorId: string | null;
+  authorId: string | null;
   authorName: string;
   tags: Tag[];
-  imageUrl: string | null
+  imageUrl: string | null;
   createdAt: string | null;
 };
 
@@ -64,7 +68,7 @@ async function attachRelations(supabase: SupabaseClient, rows: FaqViewRow[]): Pr
     for (const link of tagLinks ?? []) {
       if (!link.tag) continue;
       const list = tagsByFaq.get(link.faq_id) ?? [];
-      list.push(link.tag);
+      list.push(link.tag as Tag);
       tagsByFaq.set(link.faq_id, list);
     }
 
@@ -75,15 +79,17 @@ async function attachRelations(supabase: SupabaseClient, rows: FaqViewRow[]): Pr
   }
 
   return rows.map((row) => ({
-    id: row.id as string,
+    id: row.id ?? "",
     question: row.question ?? "",
-    answer: row.answer ?? "",
-    status: (row.status ?? "DRAFT") as FaqStatus,
-    creatorId: row.creator_id as string,
+    answer: row.answer ?? null,
+    status: (row.status as FaqStatus) ?? "UNANSWERED",
+    isAnonymous: row.is_anonymous ?? true,
+    creatorId: row.creator_id ?? null,
+    authorId: row.creator_id ?? null,
     authorName: row.author_name ?? "Unknown",
-    tags: tagsByFaq.get(row.id as string) ?? [],
-    imageUrl: imageByFaq.get(row.id as string) ?? null,
-    createdAt: row.created_at ?? null
+    tags: tagsByFaq.get(row.id ?? "") ?? [],
+    imageUrl: imageByFaq.get(row.id ?? "") ?? null,
+    createdAt: row.created_at ?? null,
   }));
 }
 
@@ -100,75 +106,6 @@ export async function fetchFaqById(id: string): Promise<Faq | null> {
   return result;
 }
 
-async function uploadFaqImage(supabase: SupabaseClient, file: File, creatorId: string): Promise<string> {
-  const ext = file.name.includes(".") ? file.name.split(".").pop() : undefined;
-  const path = `${creatorId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
-
-  const { error: uploadError } = await supabase.storage.from(FAQ_IMAGES_BUCKET).upload(path, file);
-  if (uploadError) throw uploadError;
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(FAQ_IMAGES_BUCKET).getPublicUrl(path);
-
-  const { data, error } = await supabase
-    .from("attachment")
-    .insert({ creator_id: creatorId, filename: file.name, filesize: file.size, url: publicUrl })
-    .select("id")
-    .single();
-  if (error) throw error;
-
-  return data.id as string;
-}
-// src/lib/faqs.ts
-
-export async function setFaqActive(id: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("faq")
-    .update({ status: "ACTIVE" })
-    .eq("id", id);
-  if (error) throw error;
-}
-
-async function clearFaqImage(supabase: SupabaseClient, faqId: string): Promise<void> {
-  const { data: links, error } = await supabase
-    .from("faq_attachment")
-    .select("attachment_id, attachment:attachment(url)")
-    .eq("faq_id", faqId);
-  if (error) throw error;
-  if (!links || links.length === 0) return;
-
-  const { error: unlinkError } = await supabase
-    .from("faq_attachment")
-    .delete()
-    .eq("faq_id", faqId);
-  if (unlinkError) throw unlinkError;
-
-  for (const link of links) {
-    const path = link.attachment ? extractStoragePath(link.attachment.url) : null;
-    if (path) {
-      await supabase.storage.from(FAQ_IMAGES_BUCKET).remove([path]);
-    }
-    await supabase.from("attachment").delete().eq("id", link.attachment_id);
-  }
-}
-
-async function syncTags(supabase: SupabaseClient, faqId: string, tagIds: string[]): Promise<void> {
-  const { error: deleteError } = await supabase
-    .from("faq_tag")
-    .delete()
-    .eq("faq_id", faqId);
-  if (deleteError) throw deleteError;
-
-  if (tagIds.length === 0) return;
-
-  const { error: insertError } = await supabase
-    .from("faq_tag")
-    .insert(tagIds.map((tagId) => ({ faq_id: faqId, tag_id: tagId })));
-  if (insertError) throw insertError;
-}
-
 export async function fetchFaqs(): Promise<Faq[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -177,118 +114,68 @@ export async function fetchFaqs(): Promise<Faq[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    // Wrap Supabase error object into a standard Error
     throw new Error(error.message || "Failed to fetch FAQs");
   }
 
   return attachRelations(supabase, data ?? []);
 }
 
-export async function insertFaq(
-  values: FaqFormValues,
-  status: "draft" | "published",
-  creatorId: string
-): Promise<void> {
+export async function setFaqResolved(id: string, isResolved: boolean): Promise<void> {
   const supabase = createClient();
+  const { error } = await supabase
+    .from("faqs")
+    .update({ status: isResolved ? "RESOLVED" : "UNANSWERED" })
+    .eq("id", id);
+  if (error) throw error;
+}
 
-  const { data, error } = await supabase
-    .from("faq")
+export type CreateFaqInput = {
+  question: string;
+  isAnonymous?: boolean;
+  tagIds?: string[];
+};
+
+export async function insertFaq(input: CreateFaqInput): Promise<string> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: faq, error: faqError } = await supabase
+    .from("faqs")
     .insert({
-      question: values.question,
-      answer: values.answer,
-      status: status === "published" ? "ACTIVE" : "DRAFT",
-      creator_id: creatorId,
+      question: input.question,
+      is_anonymous: input.isAnonymous ?? true,
+      creator_id: user?.id ?? null,
+      status: "UNANSWERED",
     })
     .select("id")
     .single();
 
-  if (error) {
-    throw new Error(error.message || "Failed to create FAQ");
+  if (faqError || !faq) {
+    throw new Error(faqError?.message || "Failed to create FAQ");
   }
 
-  // Handle tags mapping...
-  if (values.tagIds.length > 0 && data?.id) {
-    const tagRows = values.tagIds.map((tagId) => ({
-      faq_id: data.id,
+  // 2. Attach tags if provided
+  if (input.tagIds && input.tagIds.length > 0) {
+    const tagRows = input.tagIds.map((tagId) => ({
+      faq_id: faq.id,
       tag_id: tagId,
     }));
+
     const { error: tagError } = await supabase.from("faq_tag").insert(tagRows);
     if (tagError) {
-      throw new Error(tagError.message || "Failed to attach tags");
+      throw new Error(tagError.message);
     }
   }
+
+  return faq.id;
 }
 
-export async function updateFaq(
-  id: string,
-  values: FaqFormValues,
-  status: "draft" | "published",
-  editorId: string,
-): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("faq")
-    .update({
-      question: values.question,
-      answer: values.answer,
-      status: status === "published" ? "ACTIVE" : "DRAFT",
-    })
-    .eq("id", id);
-  if (error) throw error;
-
-  await syncTags(supabase, id, values.tagIds);
-
-  if (values.removeImage || values.imageFile) {
-    await clearFaqImage(supabase, id);
-  }
-
-  if (values.imageFile) {
-    const attachmentId = await uploadFaqImage(supabase, values.imageFile, editorId);
-    const { error: linkError } = await supabase
-      .from("faq_attachment")
-      .insert({ faq_id: id, attachment_id: attachmentId });
-    if (linkError) throw linkError;
-  }
-}
-
-export async function setFaqArchived(id: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("faq")
-    .update({ status: "ARCHIVED" })
-    .eq("id", id);
-  if (error) throw error;
-}
-
-
-export async function deleteFaq(id: string): Promise<void> {
-  const supabase = createClient();
-  await clearFaqImage(supabase, id);
-  const { error } = await supabase.from("faq").delete().eq("id", id);
-  if (error) throw error;
-}
-
-type Unsubscribe = () => void;
-
-export function subscribeToFaqs(onChange: () => void): Unsubscribe {
+export function subscribeToFaqs(onChange: () => void) {
   const supabase = createClient();
   const channel = supabase
     .channel("faqs-list-changes")
-    .on("postgres_changes", { event: "*", schema: "public", table: "faq" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "faqs" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "faq_tag" }, onChange)
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}
-
-export function subscribeToFaq(id: string, onChange: () => void): Unsubscribe {
-  const supabase = createClient();
-  const channel = supabase
-    .channel(`faq-${id}-changes`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "faq", filter: `id=eq.${id}` }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "faq_tag", filter: `faq_id=eq.${id}` }, onChange)
     .subscribe();
 
   return () => {
