@@ -1,7 +1,7 @@
 import { createClient } from "@/src/lib/supabase/client";
+import type { Database } from "@/types/database.types";
 
-// Matches the public.tag table
-export type TagCategory = "year" | "course" | "activity";
+export type TagCategory = Database["public"]["Enums"]["tag_category"];
 
 export type Tag = {
   id: string;
