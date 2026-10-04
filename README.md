@@ -28,7 +28,7 @@ This project is a software for managing information within the Computer Engineer
 | View Announcements        | In Progress               |
 | Create/Edit Announcement  | In Progress               |
 | Archive Announcement      | In Progress               |
-| FAQs                      | Not Started               |
+| FAQs                      | In Progress               |
 | Schedules                 | Not Started               |
 | Contacts                  | Not Started               |
 | Tag Management            | Not Started               |
