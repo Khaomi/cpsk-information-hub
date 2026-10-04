@@ -149,12 +149,12 @@ export default function ResourceLinksPage() {
                   </span>
                 ))}
               </div>
-              
+              <a
                 href={rl.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:text-blue-800 underline mt-2 break-all"
-              <a>
+              >
                 {rl.url}
               </a>
 

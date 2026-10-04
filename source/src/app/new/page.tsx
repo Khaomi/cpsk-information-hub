@@ -38,7 +38,7 @@ const CONTENT_TYPES: ContentTypeOption[] = [
   {
     label: "Resource Link",
     description: "A shared document, video, or external link",
-    href: null,
+    href: "/resources/new",
     icon: LinkIcon,
   },
 ];

@@ -84,13 +84,17 @@ export default function ResourceLinkForm({
   };
   
   const handleSave = (status: "draft" | "published"): void => {
-    // Blank publish date on Publish defaults to right now (still doesn't work?)
+    // Validate against what the user actually typed — never validate an
+    // auto-filled date against itself, since minute-precision rounding
+    // can make "right now" look like it's a few seconds in the past.
+    const fieldErrors = validateRequiredFields(values);
+
+    // Blank publish date on Publish defaults to right now
+    // unscheduled (starts_at/ends_at only get set once actually published).
     const effectiveValues: ResourceLinkFormValues =
       status === "published" && !values.publishedDate
         ? { ...values, publishedDate: toDateTimeInputValue(new Date().toISOString()) }
         : values;
-
-    const fieldErrors = validateRequiredFields(effectiveValues);
 
     // Same rule as announcements.
     if (status === "published" && effectiveValues.tagIds.length === 0) {
