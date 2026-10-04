@@ -1,28 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
 import { LogOut, Search, User, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
 import { createClient } from "@/src/lib/supabase/client";
+import LocaleSwitcher from "@/src/components/locale-switcher";
 
 type NavItem = {
-  label: string;
+  labelKey: string;
   href: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "All", href: "/" },
-  { label: "Announcements", href: "/announcements" },
-  { label: "FAQs", href: "/faqs" },
-  { label: "Schedules", href: "/schedules" },
-  { label: "Contacts", href: "/contacts" },
-  { label: "Resource links", href: "/resources" },
+  { labelKey: "header.nav.all", href: "/" },
+  { labelKey: "header.nav.announcements", href: "/announcements" },
+  { labelKey: "header.nav.faqs", href: "/faqs" },
+  { labelKey: "header.nav.schedules", href: "/schedules" },
+  { labelKey: "header.nav.contacts", href: "/contacts" },
+  { labelKey: "header.nav.resources", href: "/resources" },
 ];
 
 export default function Header() {
+  const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
@@ -44,7 +46,7 @@ export default function Header() {
         <Link href="/" className="flex items-baseline gap-2">
           <span className="text-lg font-bold tracking-tight">CPSK</span>
           <span className="hidden sm:inline text-sm text-stone-500">
-            Department Information &amp; Communication Hub
+            {t("common.tagline")}
           </span>
         </Link>
 
@@ -57,15 +59,16 @@ export default function Header() {
               className="flex items-center gap-1 rounded-md bg-teal-600 text-white text-sm font-medium px-3 py-1.5 hover:bg-teal-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New</span>
+              <span className="hidden sm:inline">{t("header.new")}</span>
             </Link>
           )}
+          <LocaleSwitcher />
           {user ? (
             <button
               type="button"
               onClick={handleAccountClick}
-              aria-label="Sign out"
-              title={user.displayName ?? user.email ?? "Sign out"}
+              aria-label={t("header.account.signOut")}
+              title={user.displayName ?? user.email ?? t("header.account.signOut")}
               className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
             >
               <LogOut className="w-4 h-4 text-stone-600" />
@@ -73,7 +76,7 @@ export default function Header() {
           ) : (
             <Link
               href="/auth/login"
-              aria-label="Sign in"
+              aria-label={t("header.account.signIn")}
               className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
             >
               <User className="w-4 h-4 text-stone-600" />
@@ -96,7 +99,7 @@ export default function Header() {
                   : "text-white/80 hover:text-white"
                 }`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             ))}
           </nav>
@@ -106,7 +109,10 @@ export default function Header() {
             onClick={() => setMobileNavOpen((v) => !v)}
             className="sm:hidden py-2.5 text-sm font-medium text-white flex items-center gap-1"
           >
-            {NAV_ITEMS.find((i) => i.href === pathname)?.label ?? "Menu"}
+            {(() => {
+              const current = NAV_ITEMS.find((i) => i.href === pathname);
+              return current ? t(current.labelKey) : t("header.mobile.menuFallback");
+            })()}
             <ChevronDown className={`w-4 h-4 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`} />
           </button>
 
@@ -115,12 +121,12 @@ export default function Header() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search..."
+              placeholder={t("header.search.placeholder")}
               className="w-32 sm:w-48 lg:w-72 rounded-md border-0 bg-white/90 px-3 py-1.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-white/70"
             />
             <button
               type="button"
-              aria-label="Search"
+              aria-label={t("header.search.ariaLabel")}
               className="w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             >
               <Search className="w-4 h-4 text-stone-700" />
@@ -128,7 +134,7 @@ export default function Header() {
             <button
               type="button"
               onClick={openMobileFilters}
-              aria-label="Open filters"
+              aria-label={t("header.filters.ariaLabel")}
               className="w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             >
               <SlidersHorizontal className="w-4 h-4 text-stone-700" />
@@ -145,7 +151,7 @@ export default function Header() {
                 onClick={() => setMobileNavOpen(false)}
                 className={`px-4 py-2.5 ${pathname === item.href ? "text-white bg-white/10 font-semibold" : "text-white/85"}`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             ))}
           </nav>

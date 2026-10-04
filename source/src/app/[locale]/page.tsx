@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import { fetchAnnouncements, formatDisplayDate, summarize } from "@/src/lib/announcements";
 import { colorForTag } from "@/src/lib/tags";
@@ -32,6 +33,7 @@ const TYPE_BADGE: Record<FeedItem["contentType"], string> = {
 // Announcement portion of this feed is real — fetched below.
 
 export default function HomePage() {
+  const t = useTranslations();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,13 +63,13 @@ export default function HomePage() {
 
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
-      <h1 className="text-2xl font-bold mb-4">Latest News</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("common.latestNews")}</h1>
 
       {loading ? (
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : feedItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          No content matches your filters right now.
+          {t("home.empty")}
         </div>
       ) : (
         <ul className="space-y-4">

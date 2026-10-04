@@ -1,5 +1,4 @@
 import { AuthButton } from "@/src/components/auth-button";
-import { ThemeSwitcher } from "@/src/components/theme-switcher";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -37,7 +36,6 @@ export default function ProtectedLayout({
               Supabase
             </a>
           </p>
-          <ThemeSwitcher />
         </footer>
       </div>
     </main>

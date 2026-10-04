@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 import { toDateTimeInputValue } from "@/src/lib/announcements";
@@ -46,6 +47,7 @@ export default function AnnouncementForm({
   onSubmit,
   onCancel,
 }: AnnouncementFormProps) {
+  const t = useTranslations();
   const [values, setValues] = useState<AnnouncementFormValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [imagePreview, setImagePreview] = useState<string | null>(initialImageUrl);
@@ -94,8 +96,8 @@ export default function AnnouncementForm({
   // computeDates), so it only needs validating when the user did type one.
   const validateRequiredFields = (status: "draft" | "published"): FormErrors => {
     const next: FormErrors = {};
-    if (!values.title.trim()) next.title = "Title is required.";
-    if (!values.body.trim()) next.body = "Body is required.";
+    if (!values.title.trim()) next.title = t("form.errors.titleRequired");
+    if (!values.body.trim()) next.body = t("form.errors.bodyRequired");
     if (
       status === "published" &&
       values.publishedDate &&
@@ -104,7 +106,7 @@ export default function AnnouncementForm({
       values.publishedDate !== initialValues.publishedDate &&
       new Date(values.publishedDate).getTime() < Date.now()
     ) {
-      next.publishedDate = "You can only publish for now or a future date and time.";
+      next.publishedDate = t("form.errors.publishedDateFuture");
     }
     return next;
   };
@@ -114,7 +116,7 @@ export default function AnnouncementForm({
 
     // SRS-9: publishing specifically requires at least one tag; drafts don't
     if (status === "published" && values.tagIds.length === 0) {
-      fieldErrors.tags = "Select at least one tag before publishing.";
+      fieldErrors.tags = t("validation.selectTagBeforePublish");
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -134,13 +136,13 @@ export default function AnnouncementForm({
         className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back
+        {t("common.back")}
       </button>
 
       <div className="space-y-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-1">
-            Title <span className="text-red-500">*</span>
+            {t("form.fields.title")} <span className="text-red-500">*</span>
           </label>
           <input
             id="title"
@@ -156,7 +158,7 @@ export default function AnnouncementForm({
 
         <div>
           <label htmlFor="body" className="block text-sm font-medium text-stone-700 mb-1">
-            Body <span className="text-red-500">*</span>
+            {t("form.fields.body")} <span className="text-red-500">*</span>
           </label>
           <textarea
             id="body"
@@ -172,7 +174,7 @@ export default function AnnouncementForm({
 
         <div>
           <label htmlFor="image" className="block text-sm font-medium text-stone-700 mb-1">
-            Image <span className="text-stone-400 font-normal">(optional)</span>
+            {t("form.fields.image")} <span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
           </label>
           {imagePreview && (
             <img
@@ -195,7 +197,7 @@ export default function AnnouncementForm({
                 onClick={handleRemoveImage}
                 className="text-sm text-red-600 hover:text-red-800 font-medium"
               >
-                Remove
+                {t("form.actions.remove")}
               </button>
             )}
           </div>
@@ -204,8 +206,8 @@ export default function AnnouncementForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="publishedDate" className="block text-sm font-medium text-stone-700 mb-1">
-              Published Date &amp; Time{" "}
-              <span className="text-stone-400 font-normal">(optional — defaults to now)</span>
+              {t("form.fields.publishedDate")}{" "}
+              <span className="text-stone-400 font-normal">{t("form.fields.publishedDateOptional")}</span>
             </label>
             <input
               id="publishedDate"
@@ -222,7 +224,7 @@ export default function AnnouncementForm({
 
           <div>
             <label htmlFor="expiryDate" className="block text-sm font-medium text-stone-700 mb-1">
-              Expiry Date &amp; Time <span className="text-stone-400 font-normal">(optional)</span>
+              {t("form.fields.expiryDate")} <span className="text-stone-400 font-normal">{t("form.fields.expiryDateOptional")}</span>
             </label>
             <input
               id="expiryDate"
@@ -237,10 +239,10 @@ export default function AnnouncementForm({
 
         <fieldset>
           <legend className="block text-sm font-medium text-stone-700 mb-1">
-            Target Tags <span className="text-stone-400 font-normal">(required to publish)</span>
+            {t("form.fields.targetTags")} <span className="text-stone-400 font-normal">{t("form.fields.targetTagsRequired")}</span>
           </legend>
           <div className="flex flex-wrap gap-2">
-            {tags.length === 0 && <p className="text-xs text-stone-400">No tags available yet.</p>}
+            {tags.length === 0 && <p className="text-xs text-stone-400">{t("form.noTagsAvailable")}</p>}
             {tags.map((tag) => {
               const selected = values.tagIds.includes(tag.id);
               return (
@@ -268,14 +270,14 @@ export default function AnnouncementForm({
             onClick={() => handleSave("published")}
             className="rounded-md bg-teal-600 text-white text-sm font-medium px-4 py-2 hover:bg-teal-700 transition-colors"
           >
-            Publish
+            {t("form.actions.publish")}
           </button>
           <button
             type="button"
             onClick={() => handleSave("draft")}
             className="rounded-md border border-stone-300 text-stone-700 text-sm font-medium px-4 py-2 hover:bg-stone-50 transition-colors"
           >
-            Save as Draft
+            {t("form.actions.saveAsDraft")}
           </button>
         </div>
       </div>

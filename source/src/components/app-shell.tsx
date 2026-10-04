@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/src/i18n/navigation";
 import Header from "@/src/components/header";
 
 // Auth screens and the Supabase starter's own protected demo area render

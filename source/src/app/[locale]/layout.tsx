@@ -1,13 +1,16 @@
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from '@vercel/analytics/next';
-import { ThemeProvider } from "next-themes";
 import { Geist } from "next/font/google";
 import type { Metadata } from "next";
+import { NextIntlClientProvider, hasLocale } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import AppShell from "@/src/components/app-shell";
 import { MobileFiltersProvider } from "@/src/components/mobile-filters-context";
 import { RoleProvider } from "@/src/components/role-context";
-import "./globals.css";
+import { routing } from "@/src/i18n/routing";
+import "../globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -25,22 +28,30 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-export default function RootLayout({
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
+export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }>) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
+
+  setRequestLocale(locale);
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale}>
       <body className={`${geistSans.className} antialiased`}>
         <Analytics />
         <SpeedInsights />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <NextIntlClientProvider>
           <RoleProvider>
             <MobileFiltersProvider>
               <Suspense fallback={null}>
@@ -48,7 +59,7 @@ export default function RootLayout({
               </Suspense>
             </MobileFiltersProvider>
           </RoleProvider>
-        </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

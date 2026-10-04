@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/src/i18n/navigation";
 import AnnouncementForm, { AnnouncementFormValues } from "@/src/components/announcement-form";
 import Toast from "@/src/components/toast";
 import { insertAnnouncement } from "@/src/lib/announcements";
@@ -9,6 +10,7 @@ import { fetchTags, Tag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
 
 export default function NewAnnouncementPage() {
+  const t = useTranslations();
   const router = useRouter();
   const { user, isStaff, loading } = useRole();
   const [tags, setTags] = useState<Tag[]>([]);
@@ -38,7 +40,7 @@ export default function NewAnnouncementPage() {
       await insertAnnouncement(values, status, user.id);
     } catch (err) {
       console.error("[insertAnnouncement debug]", err);
-      setError("Something went wrong while saving. Please try again.");
+      setError(t("validation.saveFailed"));
       return;
     }
 
@@ -58,14 +60,14 @@ export default function NewAnnouncementPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-1">New Announcement</h1>
+      <h1 className="text-2xl font-bold mb-1">{t("announcements.new.heading")}</h1>
       <p className="text-sm text-stone-500 mb-6">
-        Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected.
+        {t("announcements.new.description")}
       </p>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       <AnnouncementForm key={formKey} tags={tags} onSubmit={handleSubmit} onCancel={() => router.push("/announcements")} />
 
-      {showDraftToast && <Toast message="Saved to Drafts" onDismiss={() => setShowDraftToast(false)} />}
+      {showDraftToast && <Toast message={t("announcements.draftToast")} onDismiss={() => setShowDraftToast(false)} />}
     </div>
   );
 }
