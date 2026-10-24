@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   ResourceLink,
@@ -24,6 +25,8 @@ const STATUS_BADGE: Record<ResourceLinkStatus, string> = {
 
 export default function ResourceLinksPage() {
   const { user, isStaff } = useRole();
+  const searchParams = useSearchParams();
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
 
   const [items, setItems] = useState<ResourceLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,12 +58,17 @@ export default function ResourceLinksPage() {
     };
   }, []);
 
-  const visibleItems =
+  const visibleItems = (
     isStaff && scope === "mine"
       ? items.filter((rl) => rl.creatorId === user?.id)
       : isStaff
         ? items.filter((rl) => rl.status !== "DRAFT")
-        : items.filter((rl) => rl.status === "ACTIVE");
+        : items.filter((rl) => rl.status === "ACTIVE")
+  ).filter((rl) =>
+    query
+      ? rl.title.toLowerCase().includes(query) || rl.url.toLowerCase().includes(query)
+      : true
+  );
 
   const handleArchive = async (rl: ResourceLink): Promise<void> => {
     await setResourceLinkArchived(rl.id, rl.startsAt);
@@ -125,7 +133,11 @@ export default function ResourceLinksPage() {
         <p className="text-sm text-stone-500">Loading…</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          {scope === "mine" ? "You haven't added any links yet." : "No resource links match your filters right now."}
+          {query
+            ? "No resource links match your search."
+            : scope === "mine"
+              ? "You haven't added any links yet."
+              : "No resource links match your filters right now."}
         </div>
       ) : (
         <ul className="space-y-4">
