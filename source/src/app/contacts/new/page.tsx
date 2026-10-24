@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AnnouncementForm, { AnnouncementFormValues } from "@/src/components/announcement-form";
+import ContactForm, { ContactFormValues } from "@/src/components/contact-form";
 import Toast from "@/src/components/toast";
-import { insertAnnouncement } from "@/src/lib/announcements";
+import { insertContact } from "@/src/lib/contacts";
 import { fetchTags, Tag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
 
-export default function NewAnnouncementPage() {
+export default function NewContactPage() {
   const router = useRouter();
   const { user, isStaff, loading } = useRole();
   const [tags, setTags] = useState<Tag[]>([]);
@@ -17,7 +17,7 @@ export default function NewAnnouncementPage() {
 
   useEffect(() => {
     if (!loading && !isStaff) {
-      router.replace("/announcements");
+      router.replace("/contacts");
     }
   }, [loading, isStaff, router]);
 
@@ -25,24 +25,23 @@ export default function NewAnnouncementPage() {
     fetchTags().then(setTags).catch(() => setTags([]));
   }, []);
 
-  const handleSubmit = async (values: AnnouncementFormValues, status: "draft" | "published"): Promise<void> => {
+  const handleSubmit = async (values: ContactFormValues, status: "draft" | "published"): Promise<void> => {
     if (!user) return;
     setError(null);
     try {
-      await insertAnnouncement(values, status, user.id);
+      await insertContact(values, status, user.id);
     } catch (err) {
-      console.error("[insertAnnouncement debug]", err);
+      console.error("[insertContact debug]", err);
       setError("Something went wrong while saving. Please try again.");
       return;
     }
 
     if (status === "draft") {
-      // Show a brief confirmation before navigating away, so the save
-      // action feels acknowledged rather than a silent redirect.
+      // Show a brief confirmation before navigating away so the save action feels acknowledged
       setShowDraftToast(true);
-      setTimeout(() => router.push("/announcements"), 900);
+      setTimeout(() => router.push("/contacts"), 900);
     } else {
-      router.push("/announcements");
+      router.push("/contacts");
     }
   };
 
@@ -50,12 +49,12 @@ export default function NewAnnouncementPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-1">New Announcement</h1>
+      <h1 className="text-2xl font-bold mb-1">New Contact</h1>
       <p className="text-sm text-stone-500 mb-6">
-        Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected.
+        Fill in the contact details below. You can save as a draft or publish immediately.
       </p>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
-      <AnnouncementForm tags={tags} onSubmit={handleSubmit} onCancel={() => router.push("/announcements")} />
+      <ContactForm tags={tags} onSubmit={handleSubmit} onCancel={() => router.push("/contacts")} />
 
       {showDraftToast && <Toast message="Saved to Drafts" onDismiss={() => setShowDraftToast(false)} />}
     </div>

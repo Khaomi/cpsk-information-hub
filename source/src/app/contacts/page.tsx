@@ -266,7 +266,7 @@ export default function ContactsPage() {
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-3xl font-extrabold text-stone-900">Contacts Directory</h1>
+        <h1 className="text-3xl font-extrabold text-stone-900">Contacts</h1>
 
         {isStaff && (
           <div className="flex rounded-md border border-stone-300 overflow-hidden text-sm">

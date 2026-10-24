@@ -5,27 +5,22 @@ import { useRouter } from "next/navigation";
 import { useRole } from "@/src/components/role-context";
 import { createClient } from "@/src/lib/supabase/client";
 import { 
+  fetchFaqComments, 
+  insertFaqComment, 
+  updateFaqComment, 
+  deleteFaqComment, 
+  FaqComment 
+} from "@/src/lib/faq_comments";
+import { 
   ArrowLeft, 
   MessageSquare, 
-  ShieldCheck, 
   UserCircle, 
   Clock, 
   Edit3, 
-  CheckCircle, 
   Send,
   Lock,
   Trash2
 } from "lucide-react";
-
-interface Comment {
-  id: string;
-  author_id: string;
-  content: string;
-  is_staff: boolean;
-  created_at: string;
-  author_name: string;
-  author_role: string;
-}
 
 interface FaqDetail {
   id: string;
@@ -46,7 +41,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
   const { user, isStaff } = useRole();
 
   const [faq, setFaq] = useState<FaqDetail | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<FaqComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,43 +95,11 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       setEditAnswer(formattedFaq.answer ?? "");
       setEditStatus(formattedFaq.status);
 
-      // 1. Fetch Comments
-      const { data: commentsData } = await supabase
-        .from("faq_comments")
-        .select("*")
-        .eq("faq_id", id)
-        .order("created_at", { ascending: true });
-
-      if (commentsData && commentsData.length > 0) {
-        // 2. Fetch profiles separately using select("*") to avoid column mismatch errors
-        const authorIds = Array.from(new Set(commentsData.map((c) => c.author_id)));
-        const { data: profilesData } = await supabase
-          .from("profile")
-          .select("*")
-          .in("id", authorIds);
-
-        const profileMap = new Map();
-        profilesData?.forEach((p: any) => profileMap.set(p.id, p));
-
-        const formattedComments: Comment[] = commentsData.map((c: any) => {
-          const profile = profileMap.get(c.author_id);
-          const authorName = profile?.full_name || profile?.name || profile?.username || "User";
-          const authorRole = profile?.role || (c.is_staff ? "staff" : "student");
-
-          return {
-            id: c.id,
-            author_id: c.author_id,
-            content: c.content,
-            is_staff: c.is_staff,
-            created_at: c.created_at,
-            author_name: authorName,
-            author_role: authorRole,
-          };
-        });
-
-        setComments(formattedComments);
-      } else {
-        setComments([]);
+      try {
+        const fetchedComments = await fetchFaqComments(id);
+        setComments(fetchedComments);
+      } catch (err: any) {
+        setError(err.message || "Failed to load comments.");
       }
 
       setLoading(false);
@@ -182,52 +145,23 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isStaff) {
+      setError("Unauthorized: Only staff can reply.");
+      return;
+    }
     if (!newComment.trim() || !user || !faq) return;
 
     setSubmittingComment(true);
-    const supabase = createClient();
 
-    const commentPayload = {
-      faq_id: faq.id,
-      author_id: user.id,
-      content: newComment.trim(),
-      is_staff: Boolean(isStaff),
-    };
-
-    const { data: createdComment, error: commentError } = await supabase
-      .from("faq_comments")
-      .insert(commentPayload)
-      .select()
-      .single();
-
-    if (commentError) {
-      setError("Failed to submit comment: " + commentError.message);
-    } else if (createdComment) {
-      const { data: profileData } = await supabase
-        .from("profile")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      const authorName = profileData?.full_name || profileData?.name || profileData?.username || "User";
-      const authorRole = profileData?.role || (isStaff ? "staff" : "student");
-
-      const newFormattedComment: Comment = {
-        id: createdComment.id,
-        author_id: createdComment.author_id,
-        content: createdComment.content,
-        is_staff: createdComment.is_staff,
-        created_at: createdComment.created_at,
-        author_name: authorName,
-        author_role: authorRole,
-      };
-
-      setComments((prev) => [...prev, newFormattedComment]);
+    try {
+      const createdComment = await insertFaqComment(faq.id, newComment.trim(), Boolean(isStaff));
+      setComments((prev) => [...prev, createdComment]);
       setNewComment("");
 
       // Automatically change status from UNANSWERED to ANSWERED if not resolved
       if (faq.status === "UNANSWERED") {
         const newStatus = "ANSWERED";
+        const supabase = createClient();
         await supabase
           .from("faqs")
           .update({ status: newStatus })
@@ -235,43 +169,36 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
 
         setFaq((prev) => (prev ? { ...prev, status: newStatus } : null));
       }
+    } catch (err: any) {
+      setError("Failed to submit comment: " + err.message);
     }
+
     setSubmittingComment(false);
   };
 
   const handleUpdateComment = async (commentId: string) => {
     if (!editCommentContent.trim()) return;
-    const supabase = createClient();
 
-    const { error: updateError } = await supabase
-      .from("faq_comments")
-      .update({ content: editCommentContent.trim() })
-      .eq("id", commentId);
-
-    if (updateError) {
-      setError("Failed to update comment: " + updateError.message);
-    } else {
+    try {
+      await updateFaqComment(commentId, editCommentContent.trim());
       setComments((prev) =>
         prev.map((c) => (c.id === commentId ? { ...c, content: editCommentContent.trim() } : c))
       );
       setEditingCommentId(null);
       setEditCommentContent("");
+    } catch (err: any) {
+      setError("Failed to update comment: " + err.message);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
     if (!confirm("Are you sure you want to delete this reply?")) return;
-    const supabase = createClient();
 
-    const { error: deleteError } = await supabase
-      .from("faq_comments")
-      .delete()
-      .eq("id", commentId);
-
-    if (deleteError) {
-      setError("Failed to delete comment: " + deleteError.message);
-    } else {
+    try {
+      await deleteFaqComment(commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err: any) {
+      setError("Failed to delete comment: " + err.message);
     }
   };
 
@@ -445,27 +372,33 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
                 <MessageSquare className="w-5 h-5 text-teal-600" /> Replies ({comments.length})
               </h2>
 
-              {/* Reply Form */}
-              <form onSubmit={handleAddComment} className="space-y-3">
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows={3}
-                  placeholder="Write a comment or follow-up reply..."
-                  required
-                  className="w-full p-3 border border-stone-300 rounded-lg text-sm text-stone-900 focus:ring-teal-500 focus:border-teal-500"
-                />
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={submittingComment || !newComment.trim()}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors text-xs font-semibold disabled:opacity-50"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    {submittingComment ? "Posting..." : "Post Reply"}
-                  </button>
+              {/* Reply Form - Restricted to Staff */}
+              {isStaff ? (
+                <form onSubmit={handleAddComment} className="space-y-3">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows={3}
+                    placeholder="Write an official staff response or reply..."
+                    required
+                    className="w-full p-3 border border-stone-300 rounded-lg text-sm text-stone-900 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submittingComment || !newComment.trim()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors text-xs font-semibold disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {submittingComment ? "Posting..." : "Post Reply"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="p-3 bg-stone-50 border border-stone-200 rounded-lg text-center text-xs text-stone-500">
+                  Only staff members can post replies to questions.
                 </div>
-              </form>
+              )}
 
               {/* Comments Feed */}
               <div className="space-y-4 pt-2 border-t border-stone-100">
@@ -475,7 +408,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
                   </p>
                 ) : (
                   comments.map((comment) => {
-                    const isAuthor = user && user.id === comment.author_id;
+                    const isAuthor = user && user.id === comment.authorId;
                     const canDeleteComment = isStaff || isAuthor;
                     const isEditingThisComment = editingCommentId === comment.id;
 
@@ -483,7 +416,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
                       <div
                         key={comment.id}
                         className={`p-4 rounded-lg border text-sm space-y-2.5 ${
-                          comment.is_staff
+                          comment.isStaff
                             ? "bg-teal-50/30 border-teal-200"
                             : "bg-stone-50 border-stone-200"
                         }`}
@@ -491,25 +424,25 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
                         <div className="flex items-center justify-between text-xs text-stone-500">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-stone-900">
-                              {comment.author_name}
+                              {comment.authorName}
                             </span>
                             
                             {/* Role Badge */}
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              comment.author_role === "admin" 
+                              comment.authorRole === "admin" 
                                 ? "bg-purple-100 text-purple-800"
-                                : comment.author_role === "lecturer"
+                                : comment.authorRole === "lecturer"
                                 ? "bg-blue-100 text-blue-800"
-                                : comment.author_role === "ta"
+                                : comment.authorRole === "ta"
                                 ? "bg-teal-100 text-teal-800"
                                 : "bg-stone-200 text-stone-700"
                             }`}>
-                              {comment.author_role}
+                              {comment.authorRole}
                             </span>
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <span>{new Date(comment.created_at).toLocaleDateString()}</span>
+                            <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
                             
                             {isAuthor && !isEditingThisComment && (
                               <button

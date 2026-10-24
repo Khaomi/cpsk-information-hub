@@ -5,7 +5,6 @@ import { ArrowLeft } from "lucide-react";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 import type { ContactRoleType } from "@/src/lib/contacts";
 
-
 export type ContactFormValues = {
   name: string;
   roleType: ContactRoleType;
@@ -19,7 +18,7 @@ export type ContactFormValues = {
   removeImage: boolean;
 };
 
-type FormErrors = Partial<Record<"name" | "roleType" | "tags", string>>;
+type FormErrors = Partial<Record<"name" | "email" | "bio" | "roleType" | "tags", string>>;
 
 type ContactFormProps = {
   tags: Tag[];
@@ -91,6 +90,7 @@ export default function ContactForm({
   const validateRequiredFields = (): FormErrors => {
     const next: FormErrors = {};
     if (!values.name.trim()) next.name = "Name is required.";
+    if (!values.email || !values.email.trim()) next.email = "Email is required.";
     return next;
   };
 
@@ -202,18 +202,21 @@ export default function ContactForm({
           </div>
         </div>
 
-        {/* Email Field */}
+        {/* Email Field (Required) */}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
-            Email <span className="text-stone-400 font-normal">(optional)</span>
+            Email <span className="text-red-500">*</span>
           </label>
           <input
             id="email"
             type="email"
             value={values.email ?? ""}
             onChange={(e) => update("email", e.target.value)}
-            className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+              errors.email ? "border-red-400" : "border-stone-300"
+            }`}
           />
+          {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
         </div>
 
         {/* Conditional Role Fields */}
@@ -260,7 +263,7 @@ export default function ContactForm({
           </div>
         )}
 
-        {/* Bio / Info */}
+        {/* Bio / Info (Required) */}
         <div>
           <label htmlFor="bio" className="block text-sm font-medium text-stone-700 mb-1">
             Bio / Notes <span className="text-stone-400 font-normal">(optional)</span>
@@ -270,8 +273,11 @@ export default function ContactForm({
             rows={4}
             value={values.bio ?? ""}
             onChange={(e) => update("bio", e.target.value)}
-            className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+              errors.bio ? "border-red-400" : "border-stone-300"
+            }`}
           />
+          {errors.bio && <p className="text-xs text-red-600 mt-1">{errors.bio}</p>}
         </div>
 
         {/* Tags Selection */}

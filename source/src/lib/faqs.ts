@@ -229,3 +229,4 @@ export async function deleteFaq(id: string): Promise<void> {
   const { error } = await supabase.from("faqs").delete().eq("id", id);
   if (error) throw error;
 }
+
