@@ -1,85 +1,132 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { insertFaq } from "@/src/lib/faqs";
-import { useRole } from "@/src/components/role-context";
-import { ShieldAlert } from "lucide-react";
+import { createClient } from "@/src/lib/supabase/client";
+import { fetchTags, Tag } from "@/src/lib/tags";
+import FaqForm, { FaqFormValues } from "@/src/components/faq-form";
 
 export default function AskFaqPage() {
   const router = useRouter();
-  const { user } = useRole();
-  const [question, setQuestion] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const supabase = createClient();
+
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const displayName = user?.displayName || user?.email || "Student";
+  // Fetch universal tags on mount
+  useEffect(() => {
+    fetchTags()
+      .then((data) => setTags(data))
+      .catch((err) => {
+        console.error("Failed to load tags:", err);
+      });
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!question.trim()) return;
-
-    setSubmitting(true);
+  const handleSubmit = async (values: FaqFormValues, status: "draft" | "published") => {
+    setLoading(true);
     setError(null);
 
     try {
-      await insertFaq({
-        question: question.trim(),
-        isAnonymous: true,
-      });
-      router.push("/faqs");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Something went wrong.");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // 1. Insert into main faqs table with status set to UNANSWERED
+      const { data: faqData, error: insertError } = await supabase
+        .from("faqs")
+        .insert({
+          title: values.question.trim(),
+          body: values.answer.trim() || null,
+          is_anonymous: true,
+          creator_id: user?.id ?? null,
+          status: "UNANSWERED",
+        } as any)
+        .select("id")
+        .single();
+
+      if (insertError || !faqData) throw insertError;
+      const faqId = faqData.id;
+
+      // 2. Insert universal tag junction entries
+      if (values.tagIds.length > 0) {
+        const tagRows = values.tagIds.map((tagId) => ({
+          faq_id: faqId,
+          tag_id: tagId,
+        }));
+        const { error: tagError } = await supabase.from("faq_tag").insert(tagRows);
+        if (tagError) throw tagError;
       }
+
+      // 3. Handle File/Image Attachment upload if provided
+      if (values.imageFile) {
+        const file = values.imageFile;
+        const fileExt = file.name.split(".").pop();
+        const filePath = `faq-attachments/${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(2)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("attachments")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("attachments")
+          .getPublicUrl(filePath);
+
+        const { data: attachmentData, error: attError } = await supabase
+          .from("attachment")
+          .insert({
+            filename: file.name,
+            filesize: file.size,
+            url: publicUrlData.publicUrl,
+            creator_id: user?.id ?? null,
+          })
+          .select("id")
+          .single();
+
+        if (attError) throw attError;
+
+        if (attachmentData) {
+          await supabase
+            .from("faq_attachment")
+            .insert({ faq_id: faqId, attachment_id: attachmentData.id });
+        }
+      }
+
+      router.push(`/faqs/${faqId}`);
+    } catch (err: any) {
+      console.error("Error creating question:", err);
+      setError(err.message || "Failed to submit your question.");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-4 text-stone-900">Ask a Question</h1>
+    <div className="max-w-3xl mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-stone-900">Ask a Question</h1>
+        <p className="text-sm text-stone-600 mt-1">
+          Post your question or inquiry here. Submissions are anonymous to students by default.
+        </p>
+      </div>
 
       {error && (
-        <div className="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-md">
+        <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-200">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Your Question
-          </label>
-          <textarea
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            rows={4}
-            required
-            className="w-full p-2 border border-stone-300 rounded-md focus:ring-teal-500 focus:border-teal-500 text-stone-900"
-            placeholder="Type your question here..."
-          />
-        </div>
-
-        {/* Anonymity Notice for Students */}
-        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs">
-          <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <p>
-            You are posting as <strong>{displayName}</strong>. Your question will appear <strong>anonymous to other students</strong> on the public board, but course staff and lecturers will still be able to see your identity.
-          </p>
-        </div>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors disabled:opacity-50 font-medium text-sm"
-        >
-          {submitting ? "Submitting..." : "Submit Question"}
-        </button>
-      </form>
+      <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-sm">
+        <FaqForm
+          tags={tags}
+          onSubmit={handleSubmit}
+          onCancel={() => router.back()}
+        />
+      </div>
     </div>
   );
 }

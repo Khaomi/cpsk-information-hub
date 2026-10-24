@@ -83,7 +83,7 @@ export default function FaqForm({
     return next;
   };
 
-  const handleSave = (status: "draft" | "published"): void => {
+  const handleSave = (status: "published"): void => {
     const fieldErrors = validateRequiredFields();
 
     if (status === "published" && values.tagIds.length === 0) {
@@ -213,13 +213,6 @@ export default function FaqForm({
             className="rounded-md bg-teal-600 text-white text-sm font-medium px-4 py-2 hover:bg-teal-700 transition-colors"
           >
             Publish
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSave("draft")}
-            className="rounded-md border border-stone-300 text-stone-700 text-sm font-medium px-4 py-2 hover:bg-stone-50 transition-colors"
-          >
-            Save as Draft
           </button>
         </div>
       </div>

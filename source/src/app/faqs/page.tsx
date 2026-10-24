@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MessageSquarePlus, CheckCircle } from "lucide-react";
+import { MessageSquarePlus, CheckCircle, Trash2 } from "lucide-react";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Faq,
   FaqStatus,
+  deleteFaq,
   fetchFaqs,
   formatDisplayDate,
   setFaqResolved,
@@ -27,6 +28,7 @@ export default function FAQsPage() {
   const [items, setItems] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"ALL" | FaqStatus>("ALL");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadItems = (): void => {
     fetchFaqs()
@@ -48,6 +50,21 @@ export default function FAQsPage() {
   const handleToggleResolve = async (faq: Faq) => {
     await setFaqResolved(faq.id, faq.status !== "RESOLVED");
     loadItems();
+  };
+
+  const handleDelete = async (faq: Faq) => {
+    if (!window.confirm("Are you sure you want to delete this question?")) return;
+
+    try {
+      setDeletingId(faq.id);
+      await deleteFaq(faq.id);
+      setItems((prev) => prev.filter((item) => item.id !== faq.id));
+    } catch (err: any) {
+      console.error("Failed to delete FAQ:", err);
+      alert(err.message || "Failed to delete question.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -94,10 +111,12 @@ export default function FAQsPage() {
           {visibleItems.map((f) => {
             const displayName =
               isStaff || f.authorId === user?.id
-                ? `${f.authorName} ${f.isAnonymous ? "(Posted Anonymously)" : ""}`
+                ? `${f.authorName}`
                 : f.isAnonymous
                 ? "Anonymous Student"
                 : f.authorName;
+
+            const canDelete = isStaff || (user && user.id === f.creatorId);
 
             return (
               <li key={f.id} className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm hover:border-stone-300 transition-all">
@@ -133,24 +152,33 @@ export default function FAQsPage() {
                   </p>
                 )}
 
-                {isStaff && (
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100 text-xs">
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100 text-xs">
+                  <Link href={`/faqs/${f.id}`} className="text-sm text-teal-700 hover:text-teal-900 font-medium">
+                      {isStaff ? "Answer" : "View Discussion"}
+                    </Link>
+                  <div className="flex items-center gap-3">
+                    {isStaff && (
                       <button
                         onClick={() => handleToggleResolve(f)}
-                        className={`inline-flex items-center gap-1 font-medium ${
-                          f.status === "RESOLVED" ? "text-stone-500" : "text-emerald-700 hover:text-emerald-900"
+                        className={`text-sm font-medium ${
+                          f.status === "RESOLVED" ? "text-stone-500 hover:text-stone-700" : "text-emerald-700 hover:text-emerald-900"
                         }`}
                       >
-                        <CheckCircle className="w-3.5 h-3.5" />
                         {f.status === "RESOLVED" ? "Reopen Question" : "Mark as Resolved"}
                       </button>
-                      <Link href={`/faqs/${f.id}`} className="text-teal-700 hover:underline">
-                        Reply / Edit Answer
-                      </Link>
-                    </div>
-                  </div>
-                )}
+                    )}
+                    {canDelete && (
+                    <button
+                      onClick={() => handleDelete(f)}
+                      disabled={deletingId === f.id}
+                      className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 font-medium transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {deletingId === f.id ? "Deleting..." : "Delete"}
+                    </button>
+                  )}
+                  </div>       
+                </div>
               </li>
             );
           })}

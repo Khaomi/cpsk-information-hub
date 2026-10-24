@@ -182,3 +182,50 @@ export function subscribeToFaqs(onChange: () => void) {
     supabase.removeChannel(channel);
   };
 }
+
+
+async function clearFaqAttachments(supabase: ReturnType<typeof createClient>, faqId: string): Promise<void> {
+  try {
+    // 1. Fetch linked attachments
+    const { data: links } = await supabase
+      .from("faq_attachment")
+      .select("attachment_id, attachment(url)")
+      .eq("faq_id", faqId);
+
+    if (!links || links.length === 0) return;
+
+    // 2. Remove files from Supabase Storage bucket
+    const filePaths = links
+      .map((item: any) => {
+        const url = item.attachment?.url;
+        if (!url) return null;
+        const parts = url.split("/attachments/");
+        return parts.length > 1 ? parts[1] : null;
+      })
+      .filter(Boolean) as string[];
+
+    if (filePaths.length > 0) {
+      await supabase.storage.from("attachments").remove(filePaths);
+    }
+
+    // 3. Delete attachment metadata records
+    const attachmentIds = links.map((item: any) => item.attachment_id);
+    await supabase.from("attachment").delete().in("id", attachmentIds);
+  } catch (err) {
+    console.error("Error clearing attachments (proceeding with FAQ deletion):", err);
+  }
+}
+
+/**
+ * Delete an FAQ along with linked attachments and storage files.
+ */
+export async function deleteFaq(id: string): Promise<void> {
+  const supabase = createClient();
+
+  // Clear storage files and attachment rows first (non-blocking)
+  await clearFaqAttachments(supabase, id);
+
+  // Delete the FAQ row (faq_tag and faq_comments cascade delete automatically)
+  const { error } = await supabase.from("faqs").delete().eq("id", id);
+  if (error) throw error;
+}

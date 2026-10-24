@@ -18,12 +18,6 @@ const CONTENT_TYPES: ContentTypeOption[] = [
     icon: FileText,
   },
   {
-    label: "FAQ",
-    description: "A recurring question and its answer",
-    href: "/faqs/new",
-    icon: HelpCircle,
-  },
-  {
     label: "Schedule",
     description: "An event with a date, time, and location",
     href: null,
