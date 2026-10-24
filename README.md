@@ -30,7 +30,7 @@ This project is a software for managing information within the Computer Engineer
 | Archive Announcement      | In Progress               |
 | FAQs                      | In Progress               |
 | Schedules                 | Not Started               |
-| Contacts                  | Not Started               |
+| Contacts                  | In Progress               |
 | Tag Management            | Not Started               |
 | Keyword Search            | Not Started               |
 | Database connection       | Not Started               |
