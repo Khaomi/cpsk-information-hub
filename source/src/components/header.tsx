@@ -60,6 +60,14 @@ export default function Header() {
               <span className="hidden sm:inline">New</span>
             </Link>
           )}
+          {isStaff && (
+            <Link
+              href="/tags"
+              className="flex items-center gap-1 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+            >
+              <span className="hidden sm:inline">Tags</span>
+            </Link>
+          )}
           {user ? (
             <button
               type="button"

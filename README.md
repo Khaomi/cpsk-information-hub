@@ -31,9 +31,9 @@ This project is a software for managing information within the Computer Engineer
 | FAQs                      | Not Started               |
 | Schedules                 | Not Started               |
 | Contacts                  | Not Started               |
-| Tag Management            | Not Started               |
+| Tag Management            | Done                      |
 | Keyword Search            | Not Started               |
-| Database connection       | Not Started               |
+| Database connection       | Done                      |
 | Deployment                | Not Started               |
 
 ## How to run
