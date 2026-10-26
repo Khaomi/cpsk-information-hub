@@ -1,0 +1,162 @@
+{
+  "common": {
+    "tagline": "Department Information & Communication Hub",
+    "latestNews": "Latest News",
+    "loading": "Loading…",
+    "back": "Back",
+    "cancel": "Cancel"
+  },
+  "header": {
+    "nav": {
+      "all": "All",
+      "announcements": "Announcements",
+      "faqs": "FAQs",
+      "schedules": "Schedules",
+      "contacts": "Contacts",
+      "resources": "Resource links"
+    },
+    "search": {
+      "placeholder": "Search...",
+      "ariaLabel": "Search"
+    },
+    "filters": {
+      "ariaLabel": "Open filters"
+    },
+    "new": "New",
+    "account": {
+      "signIn": "Sign in",
+      "signOut": "Sign out"
+    },
+    "mobile": {
+      "menuFallback": "Menu"
+    }
+  },
+  "filters": {
+    "groups": {
+      "year": "Year",
+      "course": "Course",
+      "forWho": "For who",
+      "activity": "Activity"
+    },
+    "search": "Search",
+    "clear": "Clear",
+    "drawer": {
+      "title": "Filters",
+      "closeAriaLabel": "Close filters"
+    }
+  },
+  "form": {
+    "fields": {
+      "title": "Title",
+      "body": "Body",
+      "image": "Image",
+      "imageOptional": "(optional)",
+      "publishedDate": "Published Date & Time",
+      "publishedDateOptional": "(optional — defaults to now)",
+      "expiryDate": "Expiry Date & Time",
+      "expiryDateOptional": "(optional)",
+      "targetTags": "Target Tags",
+      "targetTagsRequired": "(required to publish)"
+    },
+    "noTagsAvailable": "No tags available yet.",
+    "actions": {
+      "publish": "Publish",
+      "saveAsDraft": "Save as Draft",
+      "remove": "Remove"
+    },
+    "errors": {
+      "titleRequired": "Title is required.",
+      "bodyRequired": "Body is required.",
+      "publishedDateFuture": "You can only publish for now or a future date and time."
+    }
+  },
+  "validation": {
+    "selectTagBeforePublish": "Select at least one tag before publishing.",
+    "saveFailed": "Something went wrong while saving. Please try again."
+  },
+  "home": {
+    "empty": "No content matches your filters right now."
+  },
+  "announcements": {
+    "scope": {
+      "all": "All",
+      "mine": "My Announcements"
+    },
+    "empty": {
+      "mine": "You haven't created any announcements yet.",
+      "all": "No announcements match your filters right now."
+    },
+    "notFound": "Announcement not found.",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "postedOn": "Posted on {date} by {author}",
+    "actions": {
+      "publish": "Publish",
+      "restore": "Restore to Published",
+      "edit": "Edit",
+      "archive": "Archive",
+      "deletePermanently": "Delete Permanently",
+      "editToAddTags": "Edit to add tags"
+    },
+    "confirm": {
+      "archiveList": "Archive this item? It will be hidden from students but kept here for reference.",
+      "archiveDetail": "Archive this announcement? It will be hidden from students but kept for staff reference.",
+      "yesArchive": "Yes, archive",
+      "deleteList": "Permanently delete this item? This cannot be undone — it will be removed completely, not just hidden.",
+      "deleteDetail": "Permanently delete this announcement? This cannot be undone — it will be removed completely, not just hidden.",
+      "yesDelete": "Yes, delete permanently"
+    },
+    "draftToast": "Saved to Drafts",
+    "new": {
+      "heading": "New Announcement",
+      "description": "Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected."
+    },
+    "edit": {
+      "heading": "Edit Announcement",
+      "description": "Update the details below and save your changes."
+    }
+  },
+  "login": {
+    "heading": "Welcome to CPSK",
+    "emailNote": "Please use <email>@ku.th</email> email to login",
+    "continueWithGoogle": "Continue with Google",
+    "redirecting": "Redirecting...",
+    "cardTitle": "Login",
+    "cardDescription": "Sign in securely with your Google account"
+  },
+  "authError": {
+    "heading": "Sorry, something went wrong.",
+    "codeError": "Code error: {error}",
+    "unspecified": "An unspecified error occurred."
+  },
+  "newContent": {
+    "heading": "What would you like to create?",
+    "description": "Choose a content type to continue.",
+    "comingSoon": "Coming soon",
+    "types": {
+      "announcement": {
+        "label": "Announcement",
+        "description": "Time-sensitive updates like exams, events, or closures"
+      },
+      "faq": {
+        "label": "FAQ",
+        "description": "A recurring question and its answer"
+      },
+      "schedule": {
+        "label": "Schedule",
+        "description": "An event with a date, time, and location"
+      },
+      "contact": {
+        "label": "Contact",
+        "description": "Staff or TA contact details"
+      },
+      "resourceLink": {
+        "label": "Resource Link",
+        "description": "A shared document, video, or external link"
+      }
+    }
+  }
+}

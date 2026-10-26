@@ -19,6 +19,8 @@ export type Database = {
           body: string
           created_at: string
           creator_id: string
+          draft_ends_at: string | null
+          draft_starts_at: string | null
           ends_at: string | null
           id: string
           starts_at: string | null
@@ -29,6 +31,8 @@ export type Database = {
           body: string
           created_at?: string
           creator_id: string
+          draft_ends_at?: string | null
+          draft_starts_at?: string | null
           ends_at?: string | null
           id?: string
           starts_at?: string | null
@@ -39,6 +43,8 @@ export type Database = {
           body?: string
           created_at?: string
           creator_id?: string
+          draft_ends_at?: string | null
+          draft_starts_at?: string | null
           ends_at?: string | null
           id?: string
           starts_at?: string | null
@@ -275,6 +281,8 @@ export type Database = {
           body: string | null
           created_at: string | null
           creator_id: string | null
+          draft_ends_at: string | null
+          draft_starts_at: string | null
           ends_at: string | null
           id: string | null
           starts_at: string | null

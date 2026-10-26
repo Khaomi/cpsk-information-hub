@@ -5,6 +5,13 @@ CREATE TABLE IF NOT EXISTS public.announcement (
   creator_id UUID NOT NULL REFERENCES public.profile(id) ON DELETE CASCADE,
   starts_at TIMESTAMPTZ,
   ends_at TIMESTAMPTZ,
+  -- Remembers whatever date/time was picked in the form even while the
+  -- announcement is a draft (starts_at/ends_at stay null for drafts, since
+  -- status is inferred purely from those two columns and a draft must never
+  -- go live on its own) — otherwise re-opening a draft for editing loses
+  -- the date/time the user already chose.
+  draft_starts_at TIMESTAMPTZ,
+  draft_ends_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (starts_at IS NULL OR ends_at IS NULL OR ends_at >= starts_at)
@@ -98,6 +105,17 @@ CREATE POLICY "Creator and admin can manage announcement tags"
         AND (a.creator_id = auth.uid() OR public.is_admin())
     )
   );
+
+------------------------------------------------------------------------------------
+
+GRANT SELECT ON public.announcement TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.announcement TO authenticated;
+
+GRANT SELECT ON public.announcement_attachment TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.announcement_attachment TO authenticated;
+
+GRANT SELECT ON public.announcement_tag TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.announcement_tag TO authenticated;
 
 ------------------------------------------------------------------------------------
 
