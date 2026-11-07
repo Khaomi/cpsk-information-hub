@@ -72,7 +72,7 @@ export default function FAQsPage() {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Questions & FAQs</h1>
-          <p className="text-sm text-stone-500">Ask questions anonymously or browse resolved topics.</p>
+          <p className="text-sm text-stone-500">Ask questions anonymously and wait for staff to reply or browse resolved topics.</p>
         </div>
 
         <Link
@@ -144,13 +144,6 @@ export default function FAQsPage() {
                     </span>
                   ))}
                 </div>
-
-                {f.answer && (
-                  <p className="text-sm text-stone-600 mt-3 bg-stone-50 p-3 rounded-md border-l-2 border-teal-500">
-                    <strong className="text-stone-800 block text-xs mb-1">Answer:</strong>
-                    {summarize(f.answer)}
-                  </p>
-                )}
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100 text-xs">
                   <Link href={`/faqs/${f.id}`} className="text-sm text-teal-700 hover:text-teal-900 font-medium">

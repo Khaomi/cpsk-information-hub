@@ -14,10 +14,11 @@ export type FaqComment = {
 type SupabaseClient = ReturnType<typeof createClient>;
 
 /**
- * Fetch all comments for a specific FAQ along with resolved author profile names and roles.
+ * Fetch all comments for a specific FAQ along with resolved author roles and metadata names.
  */
 export async function fetchFaqComments(faqId: string): Promise<FaqComment[]> {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { data: commentsData, error: commentsError } = await supabase
     .from("faq_comments")
@@ -35,6 +36,7 @@ export async function fetchFaqComments(faqId: string): Promise<FaqComment[]> {
 
   // Extract unique author IDs and fetch their profiles
   const authorIds = Array.from(new Set(commentsData.map((c) => c.author_id)));
+  
   const { data: profilesData, error: profileError } = await supabase
     .from("profile")
     .select("*")
@@ -49,7 +51,15 @@ export async function fetchFaqComments(faqId: string): Promise<FaqComment[]> {
 
   return commentsData.map((c: any) => {
     const profile = profileMap.get(c.author_id);
-    const authorName = profile?.full_name || profile?.name || profile?.username || "User";
+    
+    // If the comment belongs to the current logged-in user, read their name from auth metadata
+    const isCurrentUser = user && user.id === c.author_id;
+    const currentUserName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0];
+
+    const authorName = isCurrentUser 
+      ? (currentUserName || "User") 
+      : (c.is_staff ? "Staff Member" : "Student");
+
     const authorRole = profile?.role || (c.is_staff ? "staff" : "student");
 
     return {
@@ -98,7 +108,13 @@ export async function insertFaqComment(faqId: string, content: string, isStaff: 
     .eq("id", user.id)
     .single();
 
-  const authorName = profileData?.full_name || profileData?.name || profileData?.username || "User";
+  // Get name from current logged-in Google user metadata
+  const authorName = 
+    user.user_metadata?.full_name || 
+    user.user_metadata?.name || 
+    user.email?.split("@")[0] || 
+    "User";
+
   const authorRole = profileData?.role || (isStaff ? "staff" : "student");
 
   return {

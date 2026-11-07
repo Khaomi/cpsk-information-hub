@@ -37,7 +37,7 @@ export default function AskFaqPage() {
         .from("faqs")
         .insert({
           title: values.question.trim(),
-          body: values.answer.trim() || null,
+          description: values.description.trim() || null,
           is_anonymous: true,
           creator_id: user?.id ?? null,
           status: "UNANSWERED",

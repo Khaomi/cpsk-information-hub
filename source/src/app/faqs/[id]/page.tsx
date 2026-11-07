@@ -25,7 +25,7 @@ import {
 interface FaqDetail {
   id: string;
   question: string;
-  answer: string | null;
+  description: string | null;
   status: "UNANSWERED" | "ANSWERED" | "RESOLVED";
   is_anonymous: boolean;
   creator_id: string | null;
@@ -48,7 +48,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
   // Edit states for FAQ
   const [isEditing, setIsEditing] = useState(false);
   const [editQuestion, setEditQuestion] = useState("");
-  const [editAnswer, setEditAnswer] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState<FaqDetail["status"]>("UNANSWERED");
   const [saving, setSaving] = useState(false);
 
@@ -59,6 +59,9 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
   // Edit state for Comments
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState("");
+
+  // Confirm delete
+  const [confirming, setConfirming] = useState<{ id: string; type: "delete" | "faq" } | null>(null);
 
   useEffect(() => {
     async function loadFaqData() {
@@ -80,7 +83,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       const formattedFaq: FaqDetail = {
         id: faqData.id,
         question: faqData.question,
-        answer: faqData.answer ?? null,
+        description: faqData.description ?? faqData.answer ?? null,
         status: (faqData.status as FaqDetail["status"]) ?? "UNANSWERED",
         is_anonymous: faqData.is_anonymous ?? false,
         creator_id: faqData.creator_id ?? null,
@@ -92,7 +95,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
 
       setFaq(formattedFaq);
       setEditQuestion(formattedFaq.question);
-      setEditAnswer(formattedFaq.answer ?? "");
+      setEditDescription(formattedFaq.description ?? "");
       setEditStatus(formattedFaq.status);
 
       try {
@@ -115,14 +118,20 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
     setSaving(true);
     const supabase = createClient();
 
+    const updatePayload: any = {
+      question: editQuestion.trim(),
+      description: editDescription.trim() || null,
+    };
+
+    // Only staff can update status or answered state directly if desired
+    if (isStaff) {
+      updatePayload.status = editStatus;
+      updatePayload.answered_by_id = editDescription.trim() ? user?.id : faq.creator_id;
+    }
+
     const { error: updateError } = await supabase
       .from("faqs")
-      .update({
-        question: editQuestion.trim(),
-        answer: editAnswer.trim() || null,
-        status: editStatus,
-        answered_by_id: editAnswer.trim() ? user?.id : faq.creator_id,
-      })
+      .update(updatePayload)
       .eq("id", faq.id);
 
     if (updateError) {
@@ -133,8 +142,8 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
           ? {
               ...prev,
               question: editQuestion,
-              answer: editAnswer || null,
-              status: editStatus,
+              description: editDescription || null,
+              status: isStaff ? editStatus : prev.status,
             }
           : null
       );
@@ -192,11 +201,27 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm("Are you sure you want to delete this reply?")) return;
-
     try {
       await deleteFaqComment(commentId);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+
+      const updatedComments = comments.filter((c) => c.id !== commentId);
+      setComments(updatedComments);
+      setConfirming(null);
+
+      // If all comments are deleted, automatically reset status to UNANSWERED
+      if (updatedComments.length === 0 && faq && faq.status !== "UNANSWERED") {
+        const newStatus = "UNANSWERED";
+        const supabase = createClient();
+        
+        const { error: updateError } = await supabase
+          .from("faqs")
+          .update({ status: newStatus })
+          .eq("id", faq.id);
+
+        if (!updateError) {
+          setFaq((prev) => (prev ? { ...prev, status: newStatus } : null));
+        }
+      }
     } catch (err: any) {
       setError("Failed to delete comment: " + err.message);
     }
@@ -226,6 +251,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
     );
   }
 
+  // Allow staff or the original creator to edit the question
   const canEdit = isStaff || (user && user.id === faq.creator_id);
 
   return (
@@ -267,12 +293,6 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
                 >
                   {faq.status}
                 </span>
-
-                {faq.is_anonymous && (
-                  <span className="flex items-center gap-1 text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">
-                    <Lock className="w-3 h-3" /> Anonymous to students
-                  </span>
-                )}
               </div>
 
               {!isEditing ? (
@@ -300,9 +320,20 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
               <span>{new Date(faq.created_at).toLocaleDateString()}</span>
             </div>
           </div>
+          
+          {!isEditing && faq.description ? (
+            <div className="mt-4">
+              <h3 className="text-xs font-bold text-teal-800 uppercase tracking-wider mb-1">
+                Description
+              </h3>
+              <p className="text-stone-800 text-sm whitespace-pre-wrap">
+                {faq.description}
+              </p>
+            </div>
+          ) : null}
         </div>
 
-        {/* Edit Form OR Body View */}
+        {/* Edit Form OR Comments View */}
         <div className="p-6">
           {isEditing ? (
             <form onSubmit={handleUpdateFaq} className="space-y-4">
@@ -319,35 +350,35 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  Description / Details
+                </label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={4}
+                  placeholder="Provide additional details or context..."
+                  className="w-full p-2 border border-stone-300 rounded-md text-sm text-stone-900 focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+
               {isStaff && (
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
-                    Official Answer / Response
+                    Status
                   </label>
-                  <textarea
-                    value={editAnswer}
-                    onChange={(e) => setEditAnswer(e.target.value)}
-                    rows={5}
-                    placeholder="Provide an official staff response..."
-                    className="w-full p-2 border border-stone-300 rounded-md text-sm text-stone-900 focus:ring-teal-500 focus:border-teal-500"
-                  />
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as FaqDetail["status"])}
+                    className="p-2 border border-stone-300 rounded-md text-sm text-stone-900 focus:ring-teal-500 focus:border-teal-500"
+                  >
+                    <option value="UNANSWERED">UNANSWERED</option>
+                    <option value="ANSWERED">ANSWERED</option>
+                    <option value="RESOLVED">RESOLVED</option>
+                  </select>
                 </div>
               )}
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Status
-                </label>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as FaqDetail["status"])}
-                  className="p-2 border border-stone-300 rounded-md text-sm text-stone-900 focus:ring-teal-500 focus:border-teal-500"
-                >
-                  <option value="UNANSWERED">UNANSWERED</option>
-                  <option value="ANSWERED">ANSWERED</option>
-                  <option value="RESOLVED">RESOLVED</option>
-                </select>
-              </div>
 
               <div className="flex items-center gap-2 pt-2">
                 <button
@@ -458,7 +489,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
 
                             {canDeleteComment && (
                               <button
-                                onClick={() => handleDeleteComment(comment.id)}
+                                onClick={() => setConfirming({ id: comment.id, type: "delete" })}
                                 className="text-red-600 hover:text-red-800 font-medium inline-flex items-center gap-1"
                                 title="Delete Reply"
                               >
@@ -493,6 +524,31 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
                           </div>
                         ) : (
                           <p className="text-stone-800 whitespace-pre-wrap">{comment.content}</p>
+                        )}
+
+                        {/* Inline Delete Confirmation Box matching Contacts */}
+                        {confirming?.id === comment.id && confirming.type === "delete" && (
+                          <div className="mt-3 pt-3 border-t border-stone-100 bg-red-50 -mx-4 -mb-4 px-4 pb-4 rounded-b-lg">
+                            <p className="text-xs text-red-700 font-medium mb-2">
+                              Permanently delete this reply? This cannot be undone.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors"
+                              >
+                                Yes, delete permanently
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirming(null)}
+                                className="text-xs font-medium border border-stone-300 bg-white rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     );

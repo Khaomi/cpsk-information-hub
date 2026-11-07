@@ -27,7 +27,7 @@ export default function ContactsPage() {
   const [items, setItems] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState<"all" | "mine">("all");
-  const [confirming, setConfirming] = useState<{ id: string; type: "archive" | "delete" } | null>(null);
+  const [confirming, setConfirming] = useState<{ id: string; type: "delete" } | null>(null);
   const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
 
   const loadItems = (): void => {
@@ -64,13 +64,7 @@ export default function ContactsPage() {
   const lecturers = visibleItems.filter((c) => c.roleType === "LECTURER");
   const tas = visibleItems.filter((c) => c.roleType === "TA");
 
-  const handleArchive = async (contact: Contact): Promise<void> => {
-    await setContactArchived(contact.id);
-    setConfirming(null);
-    loadItems();
-  };
-
-  const handleDeletePermanently = async (id: string): Promise<void> => {
+  const handleDelete = async (id: string): Promise<void> => {
     await deleteContact(id);
     setConfirming(null);
     loadItems();
@@ -120,19 +114,13 @@ export default function ContactsPage() {
           </div>
 
           {/* Tags / Badges */}
+          {/* Tags / Badges */}
           <div className="flex flex-wrap gap-1.5 my-2">
             {c.tags.map((tag) => (
-              <span key={tag.id} className={`text-xs font-semibold px-2.5 py-1 rounded-md ${colorForTag(tag)}`}>
+              <span key={tag.id} className={`text-xs px-3 py-1 rounded-full font-medium ${colorForTag(tag)}`}>
                 {tag.name}
               </span>
             ))}
-            <span
-              className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
-                c.roleType === "LECTURER" ? "bg-lime-300 text-lime-900" : "bg-orange-200 text-orange-900"
-              }`}
-            >
-              {c.roleType === "LECTURER" ? "Lecturer" : "TA"}
-            </span>
           </div>
 
           {/* Contact Details Grid */}
@@ -170,35 +158,17 @@ export default function ContactsPage() {
               Publish
             </button>
           )}
-          {c.status === "ARCHIVED" && (
-            <button
-              type="button"
-              onClick={() => handlePublish(c)}
-              className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
-            >
-              Restore to Published
-            </button>
-          )}
           <Link href={`/contacts/${c.id}/edit`} className="text-sm text-teal-700 hover:text-teal-900 font-medium">
             Edit
           </Link>
-          {c.status !== "ARCHIVED" ? (
-            <button
-              type="button"
-              onClick={() => setConfirming({ id: c.id, type: "archive" })}
-              className="text-sm text-red-600 hover:text-red-800 font-medium"
-            >
-              Archive
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirming({ id: c.id, type: "delete" })}
-              className="text-sm text-red-700 hover:text-red-900 font-medium"
-            >
-              Delete Permanently
-            </button>
-          )}
+          
+          <button
+            type="button"
+            onClick={() => setConfirming({ id: c.id, type: "delete" })}
+            className="text-sm text-red-700 hover:text-red-900 font-medium"
+          >
+            Delete
+          </button>
         </div>
       )}
 
@@ -213,30 +183,6 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {confirming?.id === c.id && confirming.type === "archive" && (
-        <div className="mt-2 pt-2 border-t border-stone-100">
-          <p className="text-xs text-stone-600 mb-2">
-            Archive this contact? It will be hidden from students but kept here for reference.
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => handleArchive(c)}
-              className="text-xs font-medium bg-red-600 text-white rounded px-3 py-1.5 hover:bg-red-700 transition-colors"
-            >
-              Yes, archive
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(null)}
-              className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
       {confirming?.id === c.id && confirming.type === "delete" && (
         <div className="mt-2 pt-2 border-t border-stone-100 bg-red-50 -mx-4 -mb-4 px-4 pb-4 rounded-b-lg">
           <p className="text-xs text-red-700 font-medium mb-2">
@@ -245,7 +191,7 @@ export default function ContactsPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => handleDeletePermanently(c.id)}
+              onClick={() => handleDelete(c.id)}
               className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors"
             >
               Yes, delete permanently

@@ -1,6 +1,5 @@
 import { createClient } from "@/src/lib/supabase/client";
 import type { Database, Tables } from "@/types/database.types";
-import type { FaqFormValues } from "@/src/components/faq-form";
 import type { Tag } from "@/src/lib/tags";
 // Your file (e.g., page.ts or api.ts)
 
@@ -10,7 +9,7 @@ export type FaqStatus = Database["public"]["Enums"]["faq_status"];
 export type Faq = {
   id: string;
   question: string;
-  answer: string | null;
+  description: string | null;
   status: FaqStatus;
   isAnonymous: boolean;
   creatorId: string | null;
@@ -81,7 +80,7 @@ async function attachRelations(supabase: SupabaseClient, rows: FaqViewRow[]): Pr
   return rows.map((row) => ({
     id: row.id ?? "",
     question: row.question ?? "",
-    answer: row.answer ?? null,
+    description: row.description ?? null,
     status: (row.status as FaqStatus) ?? "UNANSWERED",
     isAnonymous: row.is_anonymous ?? true,
     creatorId: row.creator_id ?? null,

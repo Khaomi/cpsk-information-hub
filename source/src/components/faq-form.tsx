@@ -6,13 +6,13 @@ import { colorForTag, type Tag } from "@/src/lib/tags";
 
 export type FaqFormValues = {
   question: string;
-  answer: string;
+  description: string;
   tagIds: string[];
   imageFile: File | null;
   removeImage: boolean;
 };
 
-type FormErrors = Partial<Record<"question" | "answer" | "tags", string>>;
+type FormErrors = Partial<Record<"question" | "description" | "tags", string>>;
 
 type FaqFormProps = {
   tags: Tag[];
@@ -25,7 +25,7 @@ type FaqFormProps = {
 
 const EMPTY_VALUES: FaqFormValues = {
   question: "",
-  answer: "",
+  description: "",
   tagIds: [],
   imageFile: null,
   removeImage: false,
@@ -79,7 +79,7 @@ export default function FaqForm({
   const validateRequiredFields = (): FormErrors => {
     const next: FormErrors = {};
     if (!values.question.trim()) next.question = "Question is required.";
-    if (!values.answer.trim()) next.answer = "Answer is required.";
+    if (!values.description.trim()) next.description = "Desription is required.";
     return next;
   };
 
@@ -128,21 +128,21 @@ export default function FaqForm({
           {errors.question && <p className="text-xs text-red-600 mt-1">{errors.question}</p>}
         </div>
 
-        {/* Answer Field */}
+        {/* Desription Field */}
         <div>
-          <label htmlFor="answer" className="block text-sm font-medium text-stone-700 mb-1">
-            Answer <span className="text-red-500">*</span>
+          <label htmlFor="description" className="block text-sm font-medium text-stone-700 mb-1">
+            Desription <span className="text-red-500">*</span>
           </label>
           <textarea
-            id="answer"
+            id="description"
             rows={5}
-            value={values.answer}
-            onChange={(e) => update("answer", e.target.value)}
+            value={values.description}
+            onChange={(e) => update("description", e.target.value)}
             className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-              errors.answer ? "border-red-400" : "border-stone-300"
+              errors.description ? "border-red-400" : "border-stone-300"
             }`}
           />
-          {errors.answer && <p className="text-xs text-red-600 mt-1">{errors.answer}</p>}
+          {errors.description && <p className="text-xs text-red-600 mt-1">{errors.description}</p>}
         </div>
 
         {/* Image Field */}
@@ -219,3 +219,4 @@ export default function FaqForm({
     </div>
   );
 }
+
