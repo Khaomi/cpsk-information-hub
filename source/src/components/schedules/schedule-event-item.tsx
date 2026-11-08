@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MapPin, Pencil, Trash2 } from "lucide-react";
 import { formatTimeRange, type ScheduleEvent } from "@/src/lib/schedules";
+import { colorForTag } from "@/src/lib/tags";
 
 type ScheduleEventItemProps = {
   event: ScheduleEvent;
@@ -18,15 +19,24 @@ type ScheduleEventItemProps = {
 export default function ScheduleEventItem({ event, canManage, onEdit, onDelete, onClick, highlight = false }: ScheduleEventItemProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
 
+  // On success the item unmounts (the page drops it from the list); on
+  // failure the confirm box stays open with a message so it can be retried.
   const handleDelete = async (): Promise<void> => {
     setDeleting(true);
+    setDeleteError(false);
     try {
       await onDelete(event.id);
-    } finally {
+    } catch {
+      setDeleteError(true);
       setDeleting(false);
-      setConfirmingDelete(false);
     }
+  };
+
+  const cancelDelete = (): void => {
+    setConfirmingDelete(false);
+    setDeleteError(false);
   };
 
   const body = (
@@ -47,6 +57,15 @@ export default function ScheduleEventItem({ event, canManage, onEdit, onDelete, 
         </span>
         {event.description && (
           <span className="mt-1 block text-sm text-stone-600 leading-relaxed whitespace-pre-line">{event.description}</span>
+        )}
+        {event.tags.length > 0 && (
+          <span className="mt-1.5 flex flex-wrap gap-1">
+            {event.tags.map((tag) => (
+              <span key={tag.id} className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
+                {tag.name}
+              </span>
+            ))}
+          </span>
         )}
       </span>
     </>
@@ -92,6 +111,7 @@ export default function ScheduleEventItem({ event, canManage, onEdit, onDelete, 
       {canManage && confirmingDelete && (
         <div className="mt-2 pt-2 border-t border-stone-100">
           <p className="text-xs text-red-700 font-medium mb-2">Delete this event? This cannot be undone.</p>
+          {deleteError && <p className="text-xs text-red-600 mb-2">Could not delete the event. Please try again.</p>}
           <div className="flex gap-2">
             <button
               type="button"
@@ -103,7 +123,7 @@ export default function ScheduleEventItem({ event, canManage, onEdit, onDelete, 
             </button>
             <button
               type="button"
-              onClick={() => setConfirmingDelete(false)}
+              onClick={cancelDelete}
               disabled={deleting}
               className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
             >

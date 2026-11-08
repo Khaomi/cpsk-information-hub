@@ -18,8 +18,8 @@ type ScheduleCalendarProps = {
 };
 
 // Monday-first month grid, padded with the neighbouring months' days so
-// every row is a full week. The card is h-full and the day rows are 1fr,
-// so the grid stretches to whatever height the grid row gives it.
+// every row is a full week. The calendar's own height sets the page row's
+// height; the event lists beside it scroll within that height.
 export default function ScheduleCalendar({
   year,
   month,
@@ -31,9 +31,10 @@ export default function ScheduleCalendar({
   onNextMonth,
 }: ScheduleCalendarProps) {
   const firstKey = toDateKey(new Date(year, month, 1));
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const leading = mondayIndex(firstKey);
-  const totalCells = Math.ceil((leading + daysInMonth) / 7) * 7;
+  // Always 6 weeks, so the calendar (which sets the page row's height)
+  // doesn't change size between 5- and 6-row months.
+  const totalCells = 42;
   const gridStart = addDays(firstKey, -leading);
   const cells = Array.from({ length: totalCells }, (_, i) => addDays(gridStart, i));
 

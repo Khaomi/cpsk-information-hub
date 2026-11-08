@@ -22,26 +22,27 @@ import {
   getTodayKey,
   insertSchedule,
   parseDateKey,
+  subscribeToSchedules,
   updateSchedule,
 } from "@/src/lib/schedules";
+import { fetchTags, type Tag } from "@/src/lib/tags";
 
 type FormState = { mode: "create" } | { mode: "edit"; event: ScheduleEvent } | null;
 
 export default function SchedulesPage() {
-  // TODO: this only hides the controls in the UI. Once a schedule API exists,
-  // the staff/lecturer/admin check must also be enforced on the server
-  // (e.g. RLS policies on the schedule table), like announcements.
+  // This only hides the controls; the real staff-only check is the RLS
+  // policies on public.schedule, so a student can't write via the API either.
   const { isStaff } = useRole();
 
   const [items, setItems] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [todayKey, setTodayKey] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
   const [view, setView] = useState({ year: 0, month: 0 });
   const [form, setForm] = useState<FormState>(null);
   const [now, setNow] = useState<CurrentMoment | null>(null);
-
-  const loadItems = (): Promise<void> => fetchSchedules().then(setItems);
+  const [tags, setTags] = useState<Tag[]>([]);
 
   useEffect(() => {
     fetchSchedules()
@@ -56,8 +57,31 @@ export default function SchedulesPage() {
         setView({ year: d.getFullYear(), month: d.getMonth() });
         setNow(getCurrentMoment());
       })
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  // Tags to pick from in the add/edit form. Only staff can open the form, so
+  // nobody else needs them. If they fail to load the form still works, just
+  // with no tags to choose.
+  useEffect(() => {
+    if (!isStaff) return;
+    fetchTags()
+      .then(setTags)
+      .catch(() => {});
+  }, [isStaff]);
+
+  // Live updates when anyone (another staff member, another tab) changes a
+  // schedule. A failed refetch keeps the list already on screen.
+  useEffect(
+    () =>
+      subscribeToSchedules(() => {
+        fetchSchedules()
+          .then(setItems)
+          .catch(() => {});
+      }),
+    [],
+  );
 
   // Re-read the clock so the "happening now" highlight moves on its own
   useEffect(() => {
@@ -102,12 +126,15 @@ export default function SchedulesPage() {
 
   const handleSave = async (values: ScheduleEventInput): Promise<void> => {
     if (!form) return;
+    // Apply the saved row straight to the list rather than refetching, so a
+    // failed refetch can't report an event that was saved as "not saved".
     if (form.mode === "create") {
-      await insertSchedule(values);
+      const created = await insertSchedule(values);
+      setItems((prev) => [...prev.filter((e) => e.id !== created.id), created]);
     } else {
-      await updateSchedule(form.event.id, values);
+      const updated = await updateSchedule(form.event.id, values);
+      setItems((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
     }
-    await loadItems();
     setForm(null);
     // Show the day the event was saved on, so the change is visible
     selectDay(values.date);
@@ -115,7 +142,7 @@ export default function SchedulesPage() {
 
   const handleDelete = async (id: string): Promise<void> => {
     await deleteSchedule(id);
-    await loadItems();
+    setItems((prev) => prev.filter((e) => e.id !== id));
   };
 
   const handleEdit = (event: ScheduleEvent): void => setForm({ mode: "edit", event });
@@ -128,7 +155,7 @@ export default function SchedulesPage() {
           <button
             type="button"
             onClick={() => setForm({ mode: "create" })}
-            disabled={loading}
+            disabled={loading || loadError}
             className="flex items-center gap-1 rounded-md bg-teal-600 text-white text-sm font-medium px-3 py-1.5 hover:bg-teal-700 transition-colors disabled:opacity-60"
           >
             <Plus className="w-4 h-4" />
@@ -137,13 +164,15 @@ export default function SchedulesPage() {
         )}
       </div>
 
-      {loading || !selectedKey || !now ? (
+      {loadError ? (
+        <p className="text-sm text-red-600">Could not load schedules. Please refresh the page to try again.</p>
+      ) : loading || !selectedKey || !now ? (
         <p className="text-sm text-stone-500">Loading...</p>
       ) : (
         // Equal columns from sm up with the calendar on the left; on phones the
-        // calendar comes first, then the selected day, then "Coming up". Grid
-        // items stretch to the row height, so the calendar matches the right
-        // column's height.
+        // calendar comes first, then the selected day, then "Coming up". From sm
+        // up the right column is taken out of flow (absolute), so the calendar
+        // alone sets the row height and the lists scroll inside that height.
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="min-w-0">
             <ScheduleCalendar
@@ -158,7 +187,8 @@ export default function SchedulesPage() {
             />
           </div>
 
-          <div className="min-w-0 flex flex-col gap-4">
+          <div className="min-w-0 sm:relative">
+            <div className="flex flex-col gap-4 sm:absolute sm:inset-0 sm:overflow-y-auto">
             <ScheduleDayList
               dateKey={selectedKey}
               isToday={selectedKey === todayKey}
@@ -175,6 +205,7 @@ export default function SchedulesPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
+            </div>
           </div>
         </div>
       )}
@@ -183,6 +214,7 @@ export default function SchedulesPage() {
         <ScheduleFormModal
           mode={form.mode}
           initialValues={form.mode === "edit" ? scheduleFormValuesFrom(form.event) : emptyScheduleFormValues(selectedKey)}
+          tags={tags}
           onSubmit={handleSave}
           onCancel={() => setForm(null)}
         />

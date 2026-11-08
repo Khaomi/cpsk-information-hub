@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { isValidDateKey, type ScheduleEvent, type ScheduleEventInput } from "@/src/lib/schedules";
+import { colorForTag, type Tag } from "@/src/lib/tags";
 
 // Every field is a plain string while editing; empty optional fields become
 // null only when submitted (see toInput).
@@ -13,6 +14,7 @@ export type ScheduleFormValues = {
   endTime: string;
   location: string;
   description: string;
+  tagIds: string[]; // optional: an event may have no tags
 };
 
 type FormErrors = Partial<Record<"title" | "date" | "startTime" | "endTime" | "location", string>>;
@@ -20,12 +22,13 @@ type FormErrors = Partial<Record<"title" | "date" | "startTime" | "endTime" | "l
 type ScheduleFormModalProps = {
   mode: "create" | "edit";
   initialValues: ScheduleFormValues;
+  tags: Tag[]; // every tag the user can pick from
   onSubmit: (values: ScheduleEventInput) => Promise<void>;
   onCancel: () => void;
 };
 
 export function emptyScheduleFormValues(date: string): ScheduleFormValues {
-  return { title: "", date, startTime: "", endTime: "", location: "", description: "" };
+  return { title: "", date, startTime: "", endTime: "", location: "", description: "", tagIds: [] };
 }
 
 export function scheduleFormValuesFrom(event: ScheduleEvent): ScheduleFormValues {
@@ -33,9 +36,10 @@ export function scheduleFormValuesFrom(event: ScheduleEvent): ScheduleFormValues
     title: event.title,
     date: event.date,
     startTime: event.startTime,
-    endTime: event.endTime ?? "",
+    endTime: event.endTime,
     location: event.location,
     description: event.description ?? "",
+    tagIds: event.tags.map((tag) => tag.id),
   };
 }
 
@@ -45,8 +49,9 @@ function validate(values: ScheduleFormValues): FormErrors {
   if (!values.date) next.date = "Date is required.";
   else if (!isValidDateKey(values.date)) next.date = "Enter a valid date.";
   if (!values.startTime) next.startTime = "Start time is required.";
+  if (!values.endTime) next.endTime = "End time is required.";
   // "HH:MM" strings compare correctly as text
-  if (values.endTime && values.startTime && values.endTime <= values.startTime) {
+  else if (values.startTime && values.endTime <= values.startTime) {
     next.endTime = "End time must be after the start time.";
   }
   if (!values.location.trim()) next.location = "Location is required.";
@@ -58,9 +63,10 @@ function toInput(values: ScheduleFormValues): ScheduleEventInput {
     title: values.title.trim(),
     date: values.date,
     startTime: values.startTime,
-    endTime: values.endTime || null,
+    endTime: values.endTime,
     location: values.location.trim(),
     description: values.description.trim() || null,
+    tagIds: values.tagIds,
   };
 }
 
@@ -69,7 +75,7 @@ const inputClass = (hasError: boolean): string =>
     hasError ? "border-red-400" : "border-stone-300"
   }`;
 
-export default function ScheduleFormModal({ mode, initialValues, onSubmit, onCancel }: ScheduleFormModalProps) {
+export default function ScheduleFormModal({ mode, initialValues, tags, onSubmit, onCancel }: ScheduleFormModalProps) {
   const [values, setValues] = useState<ScheduleFormValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
@@ -97,6 +103,13 @@ export default function ScheduleFormModal({ mode, initialValues, onSubmit, onCan
       delete next[key as keyof FormErrors];
       return next;
     });
+  };
+
+  const toggleTag = (tagId: string): void => {
+    setValues((prev) => ({
+      ...prev,
+      tagIds: prev.tagIds.includes(tagId) ? prev.tagIds.filter((id) => id !== tagId) : [...prev.tagIds, tagId],
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -196,7 +209,7 @@ export default function ScheduleFormModal({ mode, initialValues, onSubmit, onCan
 
             <div>
               <label htmlFor="schedule-end" className="block text-sm font-medium text-stone-700 mb-1">
-                End time <span className="text-stone-400 font-normal">(optional)</span>
+                End time <span className="text-red-500">*</span>
               </label>
               <input
                 id="schedule-end"
@@ -237,6 +250,33 @@ export default function ScheduleFormModal({ mode, initialValues, onSubmit, onCan
               className={inputClass(false)}
             />
           </div>
+
+          <fieldset>
+            <legend className="block text-sm font-medium text-stone-700 mb-1">
+              Tags <span className="text-stone-400 font-normal">(optional)</span>
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {tags.length === 0 && <p className="text-xs text-stone-400">No tags available.</p>}
+              {tags.map((tag) => {
+                const selected = values.tagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    aria-pressed={selected}
+                    className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                      selected
+                        ? "bg-teal-600 border-teal-600 text-white"
+                        : `${colorForTag(tag)} border-transparent hover:border-teal-400`
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
 
           <div className="flex gap-3 pt-2">
             <button

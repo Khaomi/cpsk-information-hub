@@ -63,25 +63,6 @@ export default function Header() {
             </Link>
           )}
           <LocaleSwitcher />
-          {user ? (
-            <button
-              type="button"
-              onClick={handleAccountClick}
-              aria-label={t("header.account.signOut")}
-              title={user.displayName ?? user.email ?? t("header.account.signOut")}
-              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
-            >
-              <LogOut className="w-4 h-4 text-stone-600" />
-            </button>
-          ) : (
-            <Link
-              href="/auth/login"
-              aria-label={t("header.account.signIn")}
-              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
-            >
-              <User className="w-4 h-4 text-stone-600" />
-            </Link>
-          )}
         </div>
       </div>
 
