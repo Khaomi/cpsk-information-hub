@@ -36,7 +36,7 @@ export default function AskFaqPage() {
       const { data: faqData, error: insertError } = await supabase
         .from("faqs")
         .insert({
-          title: values.question.trim(),
+          question: values.question.trim(),
           description: values.description.trim() || null,
           is_anonymous: true,
           creator_id: user?.id ?? null,
