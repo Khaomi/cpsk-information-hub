@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
-import { colorForTag, createTag, deleteTag, fetchTags, Tag, TagCategory, updateTag } from "@/src/lib/tags";
+import { colorForTag, createTag, deleteTag, fetchTags, subscribeToTags, Tag, TagCategory, updateTag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
 
 const CATEGORIES: { value: TagCategory; label: string }[] = [
@@ -34,7 +34,21 @@ export default function TagsPage() {
   }, [canManageTags, loading, router]);
 
   useEffect(() => {
-    if (canManageTags) fetchTags().then(setTags).catch(() => setError("Unable to load tags."));
+    if (!canManageTags) return;
+    const loadTags = (): void => {
+      fetchTags().then(setTags).catch(() => setError("Unable to load tags."));
+    };
+    loadTags();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = (): void => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(loadTags, 200);
+    };
+    const unsubscribe = subscribeToTags(scheduleReload);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [canManageTags]);
 
   const validateDraft = (value: TagDraft): string | null => {

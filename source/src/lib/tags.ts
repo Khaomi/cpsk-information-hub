@@ -50,3 +50,17 @@ export async function deleteTag(id: string): Promise<void> {
   const { error } = await supabase.from("tag").delete().eq("id", id);
   if (error) throw error;
 }
+
+type Unsubscribe = () => void;
+
+export function subscribeToTags(onChange: () => void): Unsubscribe {
+  const supabase = createClient();
+  const channel = supabase
+    .channel("tags-list-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "tag" }, onChange)
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
