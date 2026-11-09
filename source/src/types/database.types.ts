@@ -1,0 +1,208 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  public: {
+    Tables: {
+      attachment: {
+        Row: {
+          created_at: string
+          creator_id: string
+          filename: string
+          filesize: number
+          id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          filename: string
+          filesize: number
+          id?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          filename?: string
+          filesize?: number
+          id?: string
+          url?: string
+        }
+        Relationships: []
+      },
+      contact: {
+        Row: {
+          bio: string | null
+          building: string | null
+          created_at: string
+          creator_id: string
+          email: string | null
+          id: string
+          name: string
+          other_contact: string | null
+          role_type: Database["public"]["Enums"]["contact_role_type"]
+          room: string | null
+          status: Database["public"]["Enums"]["contact_status"]
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          building?: string | null
+          created_at?: string
+          creator_id: string
+          email?: string | null
+          id?: string
+          name: string
+          other_contact?: string | null
+          role_type?: Database["public"]["Enums"]["contact_role_type"]
+          room?: string | null
+          status?: Database["public"]["Enums"]["contact_status"]
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          building?: string | null
+          created_at?: string
+          creator_id?: string
+          email?: string | null
+          id?: string
+          name?: string
+          other_contact?: string | null
+          role_type?: Database["public"]["Enums"]["contact_role_type"]
+          room?: string | null
+          status?: Database["public"]["Enums"]["contact_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      },
+      contact_attachment: {
+        Row: {
+          attachment_id: string
+          contact_id: string
+        }
+        Insert: {
+          attachment_id: string
+          contact_id: string
+        }
+        Update: {
+          attachment_id?: string
+          contact_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_attachment_attachment_id_fkey"
+            columns: ["attachment_id"]
+            isOneToOne: false
+            referencedRelation: "attachment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_attachment_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact"
+            referencedColumns: ["id"]
+          },
+        ]
+      },
+      contact_tag: {
+        Row: {
+          contact_id: string
+          tag_id: string
+        }
+        Insert: {
+          contact_id: string
+          tag_id: string
+        }
+        Update: {
+          contact_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tag_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tag_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tag"
+            referencedColumns: ["id"]
+          },
+        ]
+      },
+      tag: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      contact_with_details: {
+        Row: {
+          bio: string | null
+          building: string | null
+          created_at: string | null
+          creator_id: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          other_contact: string | null
+          role_type: Database["public"]["Enums"]["contact_role_type"] | null
+          room: string | null
+          status: Database["public"]["Enums"]["contact_status"] | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      contact_role_type: "LECTURER" | "TA"
+      contact_status: "DRAFT" | "ACTIVE" | "ARCHIVED"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type PublicTableNameOrOptions<
+  TTableName extends keyof Database["public"]["Tables"] | keyof Database["public"]["Views"],
+> = TTableName extends keyof Database["public"]["Tables"]
+  ? Database["public"]["Tables"][TTableName]["Row"]
+  : TTableName extends keyof Database["public"]["Views"]
+    ? Database["public"]["Views"][TTableName]["Row"]
+    : never
+
+export type Tables<
+  TTableName extends keyof Database["public"]["Tables"] | keyof Database["public"]["Views"],
+> = PublicTableNameOrOptions<TTableName>

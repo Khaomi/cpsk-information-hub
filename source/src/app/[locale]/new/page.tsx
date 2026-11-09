@@ -2,7 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/src/i18n/navigation";
-import { ArrowLeft, FileText, HelpCircle, Calendar, Users, Link as LinkIcon } from "lucide-react";
+import { HelpCircle, /* other existing icons */ } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Users, Link as LinkIcon } from "lucide-react";
 
 type ContentTypeOption = {
   labelKey: string;
@@ -32,9 +33,9 @@ const CONTENT_TYPES: ContentTypeOption[] = [
     icon: Calendar,
   },
   {
-    labelKey: "newContent.types.contact.label",
-    descriptionKey: "newContent.types.contact.description",
-    href: null,
+    labelKey: "Contact",
+    descriptionKey: "Staff or TA contact details",
+    href: "/contacts/new",
     icon: Users,
   },
   {
