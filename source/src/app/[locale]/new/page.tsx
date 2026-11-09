@@ -37,15 +37,9 @@ const CONTENT_TYPES: ContentTypeOption[] = [
     icon: Users,
   },
   {
-<<<<<<< HEAD:source/src/app/new/page.tsx
-    label: "Resource Link",
-    description: "A shared document, video, or external link",
-    href: "/resources/new",
-=======
     labelKey: "newContent.types.resourceLink.label",
     descriptionKey: "newContent.types.resourceLink.description",
     href: null,
->>>>>>> db3547591b8186152a93a70ce0b26cdba4fb5bfb:source/src/app/[locale]/new/page.tsx
     icon: LinkIcon,
   },
 ];

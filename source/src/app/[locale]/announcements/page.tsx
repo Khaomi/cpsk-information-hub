@@ -37,17 +37,16 @@ export default function AnnouncementsPage() {
   const pathname = usePathname();
   const { user, isStaff } = useRole();
   const searchParams = useSearchParams();
-  const query = (searchParams.get("q") ?? "").trim().toLowerCase();
+  
+  
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
   const selectedTags = searchParams.getAll("tag");
 
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState<"all" | "mine">("all");
-  // confirming: which item's confirmation box is open, and for which action
   const [confirming, setConfirming] = useState<{ id: string; type: "archive" | "delete" } | null>(null);
   const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
-  const selectedTags = searchParams.getAll("tag");
-  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
   const loadItems = (): void => {
     fetchAnnouncements()
