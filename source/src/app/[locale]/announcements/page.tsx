@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Announcement,
@@ -23,7 +25,17 @@ const STATUS_BADGE: Record<AnnouncementStatus, string> = {
   ARCHIVED: "bg-red-100 text-red-700",
 };
 
+const STATUS_LABEL_KEY: Record<AnnouncementStatus, string> = {
+  ACTIVE: "announcements.status.published",
+  DRAFT: "announcements.status.draft",
+  ARCHIVED: "announcements.status.archived",
+};
+
 export default function AnnouncementsPage() {
+  const t = useTranslations();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, isStaff } = useRole();
 
   const [items, setItems] = useState<Announcement[]>([]);
@@ -32,6 +44,8 @@ export default function AnnouncementsPage() {
   // confirming: which item's confirmation box is open, and for which action
   const [confirming, setConfirming] = useState<{ id: string; type: "archive" | "delete" } | null>(null);
   const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
+  const selectedTags = searchParams.getAll("tag");
+  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
   const loadItems = (): void => {
     fetchAnnouncements()
@@ -60,12 +74,23 @@ export default function AnnouncementsPage() {
     };
   }, []);
 
-  const visibleItems =
+  const visibleItems = (
     isStaff && scope === "mine"
       ? items.filter((a) => a.creatorId === user?.id)
       : isStaff
         ? items.filter((a) => a.status !== "DRAFT")
-        : items.filter((a) => a.status === "ACTIVE");
+        : items.filter((a) => a.status === "ACTIVE")
+  ).filter((a) => {
+    // US-12: items whose tags include at least one selected tag.
+    // US-16: case-insensitive keyword match on title/body (and tag names).
+    const matchesTags = selectedTags.length === 0 || a.tags.some((item) => selectedTags.includes(item.name));
+    const matchesQuery =
+      !query ||
+      a.title.toLowerCase().includes(query) ||
+      a.body.toLowerCase().includes(query) ||
+      a.tags.some((tag) => tag.name.toLowerCase().includes(query));
+    return matchesTags && matchesQuery;
+  });
 
   const handleArchive = async (a: Announcement): Promise<void> => {
     await setAnnouncementArchived(a.id, a.startsAt);
@@ -83,7 +108,7 @@ export default function AnnouncementsPage() {
   // SRS-9 still applies in both directions: at least one tag is required.
   const handlePublish = async (item: Announcement): Promise<void> => {
     if (item.tags.length === 0) {
-      setPublishErrors((prev) => ({ ...prev, [item.id]: "Select at least one tag before publishing." }));
+      setPublishErrors((prev) => ({ ...prev, [item.id]: t("validation.selectTagBeforePublish") }));
       return;
     }
     setPublishErrors((prev) => {
@@ -96,13 +121,16 @@ export default function AnnouncementsPage() {
   };
 
   const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tag");
+    selectedTags.forEach((tag) => params.append("tag", tag));
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Latest News</h1>
+        <h1 className="text-2xl font-bold">{t("common.latestNews")}</h1>
 
         {isStaff && (
           <div className="flex rounded-md border border-stone-300 overflow-hidden text-sm">
@@ -113,7 +141,7 @@ export default function AnnouncementsPage() {
                 scope === "all" ? "bg-teal-600 text-white" : "bg-white text-stone-700 hover:bg-stone-50"
               }`}
             >
-              All
+              {t("announcements.scope.all")}
             </button>
             <button
               type="button"
@@ -122,17 +150,17 @@ export default function AnnouncementsPage() {
                 scope === "mine" ? "bg-teal-600 text-white" : "bg-white text-stone-700 hover:bg-stone-50"
               }`}
             >
-              My Announcements
+              {t("announcements.scope.mine")}
             </button>
           </div>
         )}
       </div>
 
       {loading ? (
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          {scope === "mine" ? "You haven't created any announcements yet." : "No announcements match your filters right now."}
+          {scope === "mine" ? t("announcements.empty.mine") : t("announcements.empty.all")}
         </div>
       ) : (
         <ul className="space-y-4">
@@ -143,12 +171,12 @@ export default function AnnouncementsPage() {
                   <h2 className="font-semibold text-base leading-snug">{a.title}</h2>
                   {isStaff && (
                     <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[a.status]}`}>
-                      {a.status}
+                      {t(STATUS_LABEL_KEY[a.status])}
                     </span>
                   )}
                 </div>
                 <span className="text-xs text-stone-400 mt-1 block">
-                  Posted on {formatDisplayDate(a.startsAt)} by {a.authorName}
+                  {t("announcements.postedOn", { date: formatDisplayDate(a.startsAt), author: a.authorName })}
                 </span>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {a.tags.map((tag) => (
@@ -168,7 +196,7 @@ export default function AnnouncementsPage() {
                       onClick={() => handlePublish(a)}
                       className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
                     >
-                      Publish
+                      {t("announcements.actions.publish")}
                     </button>
                   )}
                   {a.status === "ARCHIVED" && (
@@ -177,14 +205,14 @@ export default function AnnouncementsPage() {
                       onClick={() => handlePublish(a)}
                       className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
                     >
-                      Restore to Published
+                      {t("announcements.actions.restore")}
                     </button>
                   )}
                   <Link
                     href={`/announcements/${a.id}/edit`}
                     className="text-sm text-teal-700 hover:text-teal-900 font-medium"
                   >
-                    Edit
+                    {t("announcements.actions.edit")}
                   </Link>
                   {a.status !== "ARCHIVED" ? (
                     <button
@@ -192,7 +220,7 @@ export default function AnnouncementsPage() {
                       onClick={() => setConfirming({ id: a.id, type: "archive" })}
                       className="text-sm text-red-600 hover:text-red-800 font-medium"
                     >
-                      Archive
+                      {t("announcements.actions.archive")}
                     </button>
                   ) : (
                     <button
@@ -200,7 +228,7 @@ export default function AnnouncementsPage() {
                       onClick={() => setConfirming({ id: a.id, type: "delete" })}
                       className="text-sm text-red-700 hover:text-red-900 font-medium"
                     >
-                      Delete Permanently
+                      {t("announcements.actions.deletePermanently")}
                     </button>
                   )}
                 </div>
@@ -211,7 +239,7 @@ export default function AnnouncementsPage() {
                   <p className="text-xs text-red-600">
                     {publishErrors[a.id]}{" "}
                     <Link href={`/announcements/${a.id}/edit`} className="underline hover:text-red-800">
-                      Edit to add tags
+                      {t("announcements.actions.editToAddTags")}
                     </Link>
                   </p>
                 </div>
@@ -220,7 +248,7 @@ export default function AnnouncementsPage() {
               {confirming?.id === a.id && confirming.type === "archive" && (
                 <div className="mt-2 pt-2 border-t border-stone-100">
                   <p className="text-xs text-stone-600 mb-2">
-                    Archive this item? It will be hidden from students but kept here for reference.
+                    {t("announcements.confirm.archiveList")}
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -228,14 +256,14 @@ export default function AnnouncementsPage() {
                       onClick={() => handleArchive(a)}
                       className="text-xs font-medium bg-red-600 text-white rounded px-3 py-1.5 hover:bg-red-700 transition-colors"
                     >
-                      Yes, archive
+                      {t("announcements.confirm.yesArchive")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirming(null)}
                       className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>
@@ -244,7 +272,7 @@ export default function AnnouncementsPage() {
               {confirming?.id === a.id && confirming.type === "delete" && (
                 <div className="mt-2 pt-2 border-t border-stone-100 bg-red-50 -mx-4 -mb-4 px-4 pb-4 rounded-b-lg">
                   <p className="text-xs text-red-700 font-medium mb-2">
-                    Permanently delete this item? This cannot be undone — it will be removed completely, not just hidden.
+                    {t("announcements.confirm.deleteList")}
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -252,14 +280,14 @@ export default function AnnouncementsPage() {
                       onClick={() => handleDeletePermanently(a.id)}
                       className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors"
                     >
-                      Yes, delete permanently
+                      {t("announcements.confirm.yesDelete")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirming(null)}
                       className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-white transition-colors"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>

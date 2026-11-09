@@ -28,12 +28,12 @@ This project is a software for managing information within the Computer Engineer
 | View Announcements        | In Progress               |
 | Create/Edit Announcement  | In Progress               |
 | Archive Announcement      | In Progress               |
-| FAQs                      | Done              |
+| FAQs                      | Done                      |
 | Schedules                 | Not Started               |
-| Contacts                  | Done              |
-| Tag Management            | Not Started               |
+| Contacts                  | Done                      |
+| Tag Management            | Done                      |
 | Keyword Search            | Not Started               |
-| Database connection       | Not Started               |
+| Database connection       | Done                      |
 | Deployment                | Not Started               |
 
 ## How to run

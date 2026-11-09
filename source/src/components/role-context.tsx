@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/src/lib/supabase/client";
+import type { Database } from "@/types/database.types";
 
-export type Role = "admin" | "lecturer" | "ta" | "student";
+export type Role = Database["public"]["Enums"]["app_role"];
 
 export type AuthUser = {
   id: string;

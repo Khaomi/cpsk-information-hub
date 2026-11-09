@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/src/i18n/navigation";
 import { ArrowLeft } from "lucide-react";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
@@ -25,6 +25,7 @@ type Props = {
 
 export default function AnnouncementDetailPage({ params }: Props) {
   const { id } = use(params);
+  const t = useTranslations();
   const router = useRouter();
   const { isStaff } = useRole();
 
@@ -63,7 +64,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
   if (loading) {
     return (
       <FilterableLayout onApplyFilter={handleApplyFilter}>
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       </FilterableLayout>
     );
   }
@@ -71,7 +72,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
   if (!announcement) {
     return (
       <FilterableLayout onApplyFilter={handleApplyFilter}>
-        <p className="text-sm text-stone-500">Announcement not found.</p>
+        <p className="text-sm text-stone-500">{t("announcements.notFound")}</p>
       </FilterableLayout>
     );
   }
@@ -92,7 +93,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
   // SRS-9 still applies either way: at least one tag is required.
   const handlePublish = async (): Promise<void> => {
     if (announcement.tags.length === 0) {
-      setPublishError("Select at least one tag before publishing.");
+      setPublishError(t("validation.selectTagBeforePublish"));
       return;
     }
     setPublishError(null);
@@ -124,7 +125,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
                   onClick={handlePublish}
                   className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
                 >
-                  Publish
+                  {t("announcements.actions.publish")}
                 </button>
               )}
               {announcement.status === "ARCHIVED" && (
@@ -133,14 +134,14 @@ export default function AnnouncementDetailPage({ params }: Props) {
                   onClick={handlePublish}
                   className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
                 >
-                  Restore to Published
+                  {t("announcements.actions.restore")}
                 </button>
               )}
               <Link
                 href={`/announcements/${id}/edit`}
                 className="text-sm text-teal-700 hover:text-teal-900 font-medium"
               >
-                Edit
+                {t("announcements.actions.edit")}
               </Link>
               {announcement.status !== "ARCHIVED" ? (
                 <button
@@ -148,7 +149,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
                   onClick={() => setConfirming("archive")}
                   className="text-sm text-red-600 hover:text-red-800 font-medium"
                 >
-                  Archive
+                  {t("announcements.actions.archive")}
                 </button>
               ) : (
                 <button
@@ -156,7 +157,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
                   onClick={() => setConfirming("delete")}
                   className="text-sm text-red-700 hover:text-red-900 font-medium"
                 >
-                  Delete Permanently
+                  {t("announcements.actions.deletePermanently")}
                 </button>
               )}
             </div>
@@ -167,7 +168,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
           <p className="text-xs text-red-600 mb-3">
             {publishError}{" "}
             <Link href={`/announcements/${id}/edit`} className="underline hover:text-red-800">
-              Edit to add tags
+              {t("announcements.actions.editToAddTags")}
             </Link>
           </p>
         )}
@@ -175,7 +176,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
         {confirming === "archive" && (
           <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-stone-700">
-              Archive this announcement? It will be hidden from students but kept for staff reference.
+              {t("announcements.confirm.archiveDetail")}
             </p>
             <div className="flex gap-2 shrink-0">
               <button
@@ -183,14 +184,14 @@ export default function AnnouncementDetailPage({ params }: Props) {
                 onClick={handleArchive}
                 className="text-xs font-medium bg-red-600 text-white rounded px-3 py-1.5 hover:bg-red-700 transition-colors"
               >
-                Yes, archive
+                {t("announcements.confirm.yesArchive")}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirming(null)}
                 className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -199,7 +200,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
         {confirming === "delete" && (
           <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3">
             <p className="text-xs text-red-700 font-medium mb-2">
-              Permanently delete this announcement? This cannot be undone — it will be removed completely, not just hidden.
+              {t("announcements.confirm.deleteDetail")}
             </p>
             <div className="flex gap-2">
               <button
@@ -207,14 +208,14 @@ export default function AnnouncementDetailPage({ params }: Props) {
                 onClick={handleDeletePermanently}
                 className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors"
               >
-                Yes, delete permanently
+                {t("announcements.confirm.yesDelete")}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirming(null)}
                 className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-white transition-colors"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -229,7 +230,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
         </div>
 
         <p className="text-xs text-stone-400 mb-4">
-          Posted on {formatDisplayDate(announcement.startsAt)} by {announcement.authorName}
+          {t("announcements.postedOn", { date: formatDisplayDate(announcement.startsAt), author: announcement.authorName })}
         </p>
 
         {announcement.imageUrl && (
