@@ -5,11 +5,11 @@ EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
--- 2. Base Table: faqs
+-- 2. Base Table: faqs (ensure answered_by_id is included if not already)
 CREATE TABLE IF NOT EXISTS public.faqs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question TEXT NOT NULL,
-  answer TEXT,
+  description TEXT,
   status faq_status NOT NULL DEFAULT 'UNANSWERED',
   is_anonymous BOOLEAN NOT NULL DEFAULT true,
   creator_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -34,26 +34,28 @@ CREATE TABLE IF NOT EXISTS public.faq_attachment (
 
 -- 5. Table: faq_comments
 CREATE TABLE IF NOT EXISTS public.faq_comments (
-  id UUID REFERENCES public.faqs(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  faq_id UUID NOT NULL REFERENCES public.faqs(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   is_staff BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 6. Create/Replace view cleanly (joins directly on auth.users)
+-- 6. Create/Replace view matching the exact column structure from your schema
 CREATE OR REPLACE VIEW public.faq_with_details
 WITH (security_invoker = true) AS
 SELECT 
   f.id,
   f.question,
-  f.answer,
+  f.description,
   f.status,
   f.is_anonymous,
   f.creator_id,
-  f.answered_by_id,
   f.created_at,
   f.updated_at,
+  -- Pulling user's role from raw_user_meta_data or casting to public.app_role enum
+  (u.raw_user_meta_data->>'role')::public.app_role AS author_role,
   COALESCE(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'display_name', u.email, 'Anonymous') AS author_name,
   u.email AS author_email
 FROM public.faqs f
@@ -103,6 +105,9 @@ CREATE POLICY "Allow staff or author to update faqs"
     auth.uid() = creator_id OR public.is_admin()
   );
 
+-- Enable RLS
+ALTER TABLE public.faq_comments ENABLE ROW LEVEL SECURITY;
+
 -- FAQ Tags RLS
 CREATE POLICY "Allow public read access to faq_tag"
   ON public.faq_tag FOR SELECT
@@ -128,7 +133,7 @@ CREATE POLICY "Allow authenticated users to manage faq_attachment"
   TO authenticated
   USING (true);
 
--- FAQ Comments RLS
+-- FAQ Comments RLS Policies
 CREATE POLICY "Allow public read access to faq_comments"
   ON public.faq_comments FOR SELECT
   USING (true);
@@ -137,6 +142,13 @@ CREATE POLICY "Allow authenticated users to create comments"
   ON public.faq_comments FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = author_id);
+
+CREATE POLICY "Allow staff or author to update/delete comments"
+  ON public.faq_comments FOR ALL
+  TO authenticated
+  USING (
+    auth.uid() = author_id OR public.is_admin()
+  );
 
 -- 8. Force PostgREST to reload schema cache
 NOTIFY pgrst, 'reload schema';
