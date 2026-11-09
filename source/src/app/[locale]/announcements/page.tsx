@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Link } from "@/src/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Announcement,
@@ -32,6 +33,9 @@ const STATUS_LABEL_KEY: Record<AnnouncementStatus, string> = {
 
 export default function AnnouncementsPage() {
   const t = useTranslations();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, isStaff } = useRole();
 
   const [items, setItems] = useState<Announcement[]>([]);
@@ -40,6 +44,8 @@ export default function AnnouncementsPage() {
   // confirming: which item's confirmation box is open, and for which action
   const [confirming, setConfirming] = useState<{ id: string; type: "archive" | "delete" } | null>(null);
   const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
+  const selectedTags = searchParams.getAll("tag");
+  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
   const loadItems = (): void => {
     fetchAnnouncements()
@@ -68,12 +74,23 @@ export default function AnnouncementsPage() {
     };
   }, []);
 
-  const visibleItems =
+  const visibleItems = (
     isStaff && scope === "mine"
       ? items.filter((a) => a.creatorId === user?.id)
       : isStaff
         ? items.filter((a) => a.status !== "DRAFT")
-        : items.filter((a) => a.status === "ACTIVE");
+        : items.filter((a) => a.status === "ACTIVE")
+  ).filter((a) => {
+    // US-12: items whose tags include at least one selected tag.
+    // US-16: case-insensitive keyword match on title/body (and tag names).
+    const matchesTags = selectedTags.length === 0 || a.tags.some((item) => selectedTags.includes(item.name));
+    const matchesQuery =
+      !query ||
+      a.title.toLowerCase().includes(query) ||
+      a.body.toLowerCase().includes(query) ||
+      a.tags.some((tag) => tag.name.toLowerCase().includes(query));
+    return matchesTags && matchesQuery;
+  });
 
   const handleArchive = async (a: Announcement): Promise<void> => {
     await setAnnouncementArchived(a.id, a.startsAt);
@@ -104,7 +121,10 @@ export default function AnnouncementsPage() {
   };
 
   const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tag");
+    selectedTags.forEach((tag) => params.append("tag", tag));
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (

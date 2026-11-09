@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Link } from "@/src/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
-import { fetchAnnouncements, formatDisplayDate, summarize } from "@/src/lib/announcements";
+import { fetchAnnouncements, formatDisplayDate, subscribeToAnnouncements, summarize } from "@/src/lib/announcements";
 import { colorForTag } from "@/src/lib/tags";
 
 // A single mixed-feed item, regardless of which content type it came from.
@@ -16,6 +17,7 @@ type FeedItem = {
   href: string; // which section page this links through to
   title: string;
   snippet: string;
+  body: string; // full text, used for keyword search (snippet is truncated)
   date: string;
   tags: { label: string; color: string }[];
 };
@@ -34,10 +36,15 @@ const TYPE_BADGE: Record<FeedItem["contentType"], string> = {
 
 export default function HomePage() {
   const t = useTranslations();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const selectedTags = searchParams.getAll("tag");
+  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
-  useEffect(() => {
+  const loadItems = (): void => {
     fetchAnnouncements()
       .then((announcements) => {
         const items: FeedItem[] = announcements
@@ -48,18 +55,47 @@ export default function HomePage() {
             href: `/announcements/${a.id}`,
             title: a.title,
             snippet: summarize(a.body),
+            body: a.body,
             date: formatDisplayDate(a.startsAt),
             tags: a.tags.map((tag) => ({ label: tag.name, color: colorForTag(tag) })),
           }));
         setFeedItems(items);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadItems();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = (): void => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(loadItems, 300);
+    };
+    const unsubscribe = subscribeToAnnouncements(scheduleReload);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      unsubscribe();
+    };
   }, []);
 
   const handleApplyFilter = (selectedTags: string[]): void => {
-    // TODO: call the combined home-feed endpoint filtered by tag
-    console.log("Applying filter:", selectedTags);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tag");
+    selectedTags.forEach((tag) => params.append("tag", tag));
+    router.push(`${pathname}?${params.toString()}`);
   };
+
+  // US-12: show items whose tags include at least one selected tag.
+  // US-16: case-insensitive keyword match on title/body (and tag names).
+  const visibleItems = feedItems.filter((item) => {
+    const matchesTags = selectedTags.length === 0 || item.tags.some((itemTag) => selectedTags.includes(itemTag.label));
+    const matchesQuery =
+      !query ||
+      item.title.toLowerCase().includes(query) ||
+      item.body.toLowerCase().includes(query) ||
+      item.tags.some((tag) => tag.label.toLowerCase().includes(query));
+    return matchesTags && matchesQuery;
+  });
 
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
@@ -67,13 +103,13 @@ export default function HomePage() {
 
       {loading ? (
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
-      ) : feedItems.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
           {t("home.empty")}
         </div>
       ) : (
         <ul className="space-y-4">
-          {feedItems.map((item) => (
+          {visibleItems.map((item) => (
             <li key={`${item.contentType}-${item.id}`} className="rounded-lg border border-stone-200 bg-white p-4 hover:border-stone-300 transition-colors">
               <Link href={item.href}>
                 <div className="flex items-center gap-2">
