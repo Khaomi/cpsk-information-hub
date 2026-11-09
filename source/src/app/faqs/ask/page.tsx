@@ -8,13 +8,12 @@ import FaqForm, { FaqFormValues } from "@/src/components/faq-form";
 
 export default function AskFaqPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [_tags, setTags] = useState<Tag[]>([]);
   const [, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch universal tags on mount cleanly without redundant mounting state flags
+  // Fetch universal tags on mount
   useEffect(() => {
     fetchTags()
       .then((data) => setTags(data))
@@ -26,6 +25,9 @@ export default function AskFaqPage() {
   const handleSubmit = async (values: FaqFormValues) => {
     setLoading(true);
     setError(null);
+
+    // Initialize Supabase client lazily on client-side action execution
+    const supabase = createClient();
 
     try {
       const {
