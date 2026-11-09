@@ -8,31 +8,20 @@ import FaqForm, { FaqFormValues } from "@/src/components/faq-form";
 
 export default function AskFaqPage() {
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
+  const supabase = createClient();
+
   const [_tags, setTags] = useState<Tag[]>([]);
   const [, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch universal tags on mount cleanly without redundant mounting state flags
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Fetch universal tags on mount
-  useEffect(() => {
-    if (!isMounted) return;
     fetchTags()
       .then((data) => setTags(data))
       .catch((err) => {
         console.error("Failed to load tags:", err);
       });
-  }, [isMounted]);
-
-  // Prevent server-side prerender execution of client-only code/Supabase client
-  if (!isMounted) {
-    return null;
-  }
-
-  const supabase = createClient();
+  }, []);
 
   const handleSubmit = async (values: FaqFormValues) => {
     setLoading(true);
