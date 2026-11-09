@@ -28,7 +28,8 @@ const CONTENT_TYPES: ContentTypeOption[] = [
   {
     labelKey: "newContent.types.schedule.label",
     descriptionKey: "newContent.types.schedule.description",
-    href: null,
+    // Opens the add-event form on the Schedules page (see its ?new=1 handling)
+    href: "/schedules?new=1",
     icon: Calendar,
   },
   {
