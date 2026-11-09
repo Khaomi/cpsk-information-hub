@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, FileText, HelpCircle, Calendar, Users, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Users, Link as LinkIcon } from "lucide-react";
 
 type ContentTypeOption = {
   label: string;

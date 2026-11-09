@@ -10,7 +10,6 @@ import {
   deleteContact,
   fetchContactById,
   setContactActive,
-  setContactArchived,
   subscribeToContact,
 } from "@/src/lib/contacts";
 import { colorForTag } from "@/src/lib/tags";
@@ -69,12 +68,6 @@ export default function ContactDetailPage({ params }: Props) {
       </FilterableLayout>
     );
   }
-
-  const handleArchive = async (): Promise<void> => {
-    await setContactArchived(contact.id);
-    setConfirming(null);
-    router.push("/contacts");
-  };
 
   const handleDeletePermanently = async (): Promise<void> => {
     await deleteContact(contact.id);
@@ -158,30 +151,6 @@ export default function ContactDetailPage({ params }: Props) {
           </p>
         )}
 
-        {confirming === "archive" && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs text-stone-700">
-              Archive this contact? It will be hidden from students but kept for staff reference.
-            </p>
-            <div className="flex gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleArchive}
-                className="text-xs font-medium bg-red-600 text-white rounded px-3 py-1.5 hover:bg-red-700 transition-colors"
-              >
-                Yes, archive
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(null)}
-                className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
         {confirming === "delete" && (
           <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3">
             <p className="text-xs text-red-700 font-medium mb-2">
@@ -209,7 +178,10 @@ export default function ContactDetailPage({ params }: Props) {
         <div className="flex gap-6 items-start my-4">
           <div className="w-32 h-32 bg-stone-300 rounded-md overflow-hidden shrink-0">
             {contact.imageUrl ? (
-              <img src={contact.imageUrl} alt={contact.name} className="w-full h-full object-cover" />
+              <div className="mb-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={contact.imageUrl} alt={contact.name} className="w-full h-full object-cover" />
+              </div>
             ) : (
               <div className="w-full h-full bg-stone-300" />
             )}

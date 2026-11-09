@@ -233,11 +233,14 @@ export default function AnnouncementDetailPage({ params }: Props) {
         </p>
 
         {announcement.imageUrl && (
+          <div className="mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={announcement.imageUrl}
             alt=""
             className="mb-4 max-h-96 w-full rounded-lg border border-stone-200 object-cover"
           />
+          </div>
         )}
 
         <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-line mb-4">{announcement.body}</p>

@@ -10,8 +10,8 @@ export default function AskFaqPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [_tags, setTags] = useState<Tag[]>([]);
+  const [, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch universal tags on mount
@@ -23,7 +23,7 @@ export default function AskFaqPage() {
       });
   }, []);
 
-  const handleSubmit = async (values: FaqFormValues, status: "draft" | "published") => {
+  const handleSubmit = async (values: FaqFormValues) => {
     setLoading(true);
     setError(null);
 
@@ -33,15 +33,16 @@ export default function AskFaqPage() {
       } = await supabase.auth.getUser();
 
       // 1. Insert into main faqs table with status set to UNANSWERED
+      // 1. Insert into main faqs table with status set to UNANSWERED
       const { data: faqData, error: insertError } = await supabase
         .from("faqs")
         .insert({
           question: values.question.trim(),
-          description: values.description.trim() || null,
+          ...(values.description.trim() ? { description: values.description.trim() } : {}),
           is_anonymous: true,
           creator_id: user?.id ?? null,
           status: "UNANSWERED",
-        } as any)
+        })
         .select("id")
         .single();
 
@@ -97,9 +98,10 @@ export default function AskFaqPage() {
       }
 
       router.push(`/faqs/${faqId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating question:", err);
-      setError(err.message || "Failed to submit your question.");
+      const errMessage = err instanceof Error ? err.message : "Failed to submit your question.";
+      setError(errMessage);
     } finally {
       setLoading(false);
     }
@@ -122,7 +124,7 @@ export default function AskFaqPage() {
 
       <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-sm">
         <FaqForm
-          tags={tags}
+          tags={_tags}
           onSubmit={handleSubmit}
           onCancel={() => router.back()}
         />

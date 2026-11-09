@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useRole } from "@/src/components/role-context";
 import { createClient } from "@/src/lib/supabase/client";
+import type { Tables } from "@/types/database.types";
 import { 
   fetchFaqComments, 
   insertFaqComment, 
@@ -18,9 +19,10 @@ import {
   Clock, 
   Edit3, 
   Send,
-  Lock,
   Trash2
 } from "lucide-react";
+
+type FaqDetailRow = Tables<"faq_with_details">;
 
 interface FaqDetail {
   id: string;
@@ -74,23 +76,25 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
         .eq("id", id)
         .single();
 
-      if (faqError || !faqData || !faqData.id || !faqData.question) {
+      const typedFaq = faqData as FaqDetailRow | null;
+
+      if (faqError || !typedFaq || !typedFaq.id || !typedFaq.question) {
         setError("Failed to load question details or question does not exist.");
         setLoading(false);
         return;
       }
 
       const formattedFaq: FaqDetail = {
-        id: faqData.id,
-        question: faqData.question,
-        description: faqData.description ?? faqData.answer ?? null,
-        status: (faqData.status as FaqDetail["status"]) ?? "UNANSWERED",
-        is_anonymous: faqData.is_anonymous ?? false,
-        creator_id: faqData.creator_id ?? null,
-        created_at: faqData.created_at ?? new Date().toISOString(),
-        updated_at: faqData.updated_at ?? new Date().toISOString(),
-        author_name: faqData.author_name ?? undefined,  
-        author_email: faqData.author_email ?? undefined, 
+        id: typedFaq.id,
+        question: typedFaq.question,
+        description: typedFaq.description ?? null,
+        status: (typedFaq.status as FaqDetail["status"]) ?? "UNANSWERED",
+        is_anonymous: typedFaq.is_anonymous ?? false,
+        creator_id: typedFaq.creator_id ?? null,
+        created_at: typedFaq.created_at ?? new Date().toISOString(),
+        updated_at: typedFaq.updated_at ?? new Date().toISOString(),
+        author_name: typedFaq.author_name ?? undefined,  
+        author_email: typedFaq.author_email ?? undefined, 
       };
 
       setFaq(formattedFaq);
@@ -101,8 +105,9 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       try {
         const fetchedComments = await fetchFaqComments(id);
         setComments(fetchedComments);
-      } catch (err: any) {
-        setError(err.message || "Failed to load comments.");
+      } catch (err: unknown) {
+        const errMessage = err instanceof Error ? err.message : "Failed to load comments.";
+        setError(errMessage);
       }
 
       setLoading(false);
@@ -118,9 +123,14 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
     setSaving(true);
     const supabase = createClient();
 
-    const updatePayload: any = {
+    const updatePayload: {
+      question: string;
+      description?: string;
+      status?: FaqDetail["status"];
+      answered_by_id?: string | null;
+    } = {
       question: editQuestion.trim(),
-      description: editDescription.trim() || null,
+      ...(editDescription.trim() ? { description: editDescription.trim() } : {}),
     };
 
     // Only staff can update status or answered state directly if desired
@@ -178,8 +188,9 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
 
         setFaq((prev) => (prev ? { ...prev, status: newStatus } : null));
       }
-    } catch (err: any) {
-      setError("Failed to submit comment: " + err.message);
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : "Failed to submit comment.";
+      setError("Failed to submit comment: " + errMessage);
     }
 
     setSubmittingComment(false);
@@ -195,8 +206,9 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       );
       setEditingCommentId(null);
       setEditCommentContent("");
-    } catch (err: any) {
-      setError("Failed to update comment: " + err.message);
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : "Failed to update comment.";
+      setError("Failed to update comment: " + errMessage);
     }
   };
 
@@ -222,8 +234,9 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
           setFaq((prev) => (prev ? { ...prev, status: newStatus } : null));
         }
       }
-    } catch (err: any) {
-      setError("Failed to delete comment: " + err.message);
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : "Failed to delete comment.";
+      setError("Failed to delete comment: " + errMessage);
     }
   };
 

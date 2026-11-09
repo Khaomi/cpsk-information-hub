@@ -8,7 +8,6 @@ import {
   ContactStatus,
   fetchContacts,
   setContactActive,
-  setContactArchived,
   deleteContact,
   subscribeToContacts,
 } from "@/src/lib/contacts";
@@ -94,7 +93,10 @@ export default function ContactsPage() {
         {/* Contact Photo / Avatar Box */}
         <div className="w-24 h-24 bg-stone-300 rounded-md shrink-0 overflow-hidden">
           {c.imageUrl ? (
-            <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover" />
+            <div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover" />
+            </div>
           ) : (
             <div className="w-full h-full bg-stone-300" />
           )}

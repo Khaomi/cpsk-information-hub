@@ -1,8 +1,6 @@
 import { createClient } from "@/src/lib/supabase/client";
 import type { Database, Tables } from "@/types/database.types";
 import type { Tag } from "@/src/lib/tags";
-// Your file (e.g., page.ts or api.ts)
-
 
 export type FaqStatus = Database["public"]["Enums"]["faq_status"];
 
@@ -22,14 +20,6 @@ export type Faq = {
 
 type FaqViewRow = Tables<"faq_with_details">;
 type SupabaseClient = ReturnType<typeof createClient>;
-
-const FAQ_IMAGES_BUCKET = "faq-images";
-
-function extractStoragePath(url: string): string | null {
-  const marker = `/${FAQ_IMAGES_BUCKET}/`;
-  const idx = url.indexOf(marker);
-  return idx === -1 ? null : url.slice(idx + marker.length);
-}
 
 export function formatDisplayDate(dateString: string | null): string {
   if (!dateString) return "";
@@ -64,16 +54,31 @@ async function attachRelations(supabase: SupabaseClient, rows: FaqViewRow[]): Pr
     if (tagError) throw tagError;
     if (imageError) throw imageError;
 
-    for (const link of tagLinks ?? []) {
+    type TagLinkRow = {
+      faq_id: string;
+      tag: Tag | Tag[] | null;
+    };
+
+    type ImageLinkRow = {
+      faq_id: string;
+      attachment: { url: string } | { url: string }[] | null;
+    };
+
+    for (const link of (tagLinks as TagLinkRow[] | null) ?? []) {
       if (!link.tag) continue;
+      const tagObj = Array.isArray(link.tag) ? link.tag[0] : link.tag;
+      if (!tagObj) continue;
       const list = tagsByFaq.get(link.faq_id) ?? [];
-      list.push(link.tag as Tag);
+      list.push(tagObj);
       tagsByFaq.set(link.faq_id, list);
     }
 
-    for (const link of imageLinks ?? []) {
+    for (const link of (imageLinks as ImageLinkRow[] | null) ?? []) {
       if (!link.attachment || imageByFaq.has(link.faq_id)) continue;
-      imageByFaq.set(link.faq_id, link.attachment.url);
+      const attObj = Array.isArray(link.attachment) ? link.attachment[0] : link.attachment;
+      if (attObj?.url) {
+        imageByFaq.set(link.faq_id, attObj.url);
+      }
     }
   }
 
@@ -182,21 +187,27 @@ export function subscribeToFaqs(onChange: () => void) {
   };
 }
 
-
-async function clearFaqAttachments(supabase: ReturnType<typeof createClient>, faqId: string): Promise<void> {
+async function clearFaqAttachments(supabase: SupabaseClient, faqId: string): Promise<void> {
   try {
+    type FaqAttachmentLinkRow = {
+      attachment_id: string;
+      attachment: { url: string } | { url: string }[] | null;
+    };
+
     // 1. Fetch linked attachments
     const { data: links } = await supabase
       .from("faq_attachment")
       .select("attachment_id, attachment(url)")
       .eq("faq_id", faqId);
 
-    if (!links || links.length === 0) return;
+    const typedLinks = (links as FaqAttachmentLinkRow[] | null) ?? [];
+    if (typedLinks.length === 0) return;
 
     // 2. Remove files from Supabase Storage bucket
-    const filePaths = links
-      .map((item: any) => {
-        const url = item.attachment?.url;
+    const filePaths = typedLinks
+      .map((item) => {
+        const attObj = Array.isArray(item.attachment) ? item.attachment[0] : item.attachment;
+        const url = attObj?.url;
         if (!url) return null;
         const parts = url.split("/attachments/");
         return parts.length > 1 ? parts[1] : null;
@@ -208,7 +219,7 @@ async function clearFaqAttachments(supabase: ReturnType<typeof createClient>, fa
     }
 
     // 3. Delete attachment metadata records
-    const attachmentIds = links.map((item: any) => item.attachment_id);
+    const attachmentIds = typedLinks.map((item) => item.attachment_id);
     await supabase.from("attachment").delete().in("id", attachmentIds);
   } catch (err) {
     console.error("Error clearing attachments (proceeding with FAQ deletion):", err);
@@ -228,4 +239,3 @@ export async function deleteFaq(id: string): Promise<void> {
   const { error } = await supabase.from("faqs").delete().eq("id", id);
   if (error) throw error;
 }
-

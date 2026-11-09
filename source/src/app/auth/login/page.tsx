@@ -1,5 +1,4 @@
 import { GoogleAuthButton } from "@/src/components/google-auth-button";
-import { LoginForm } from "@/src/components/login-form";
 
 export default function Page() {
   return (

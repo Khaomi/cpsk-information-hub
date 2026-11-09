@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MessageSquarePlus, CheckCircle, Trash2 } from "lucide-react";
+import { MessageSquarePlus, Trash2 } from "lucide-react";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Faq,
@@ -12,7 +12,6 @@ import {
   formatDisplayDate,
   setFaqResolved,
   subscribeToFaqs,
-  summarize,
 } from "@/src/lib/faqs";
 import { colorForTag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
@@ -59,16 +58,17 @@ export default function FAQsPage() {
       setDeletingId(faq.id);
       await deleteFaq(faq.id);
       setItems((prev) => prev.filter((item) => item.id !== faq.id));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to delete FAQ:", err);
-      alert(err.message || "Failed to delete question.");
+      const errMessage = err instanceof Error ? err.message : "Failed to delete question.";
+      alert(errMessage);
     } finally {
       setDeletingId(null);
     }
   };
 
   return (
-    <FilterableLayout onApplyFilter={(tags) => console.log(tags)}>
+    <FilterableLayout onApplyFilter={() => {}}>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Questions & FAQs</h1>
@@ -170,7 +170,7 @@ export default function FAQsPage() {
                       {deletingId === f.id ? "Deleting..." : "Delete"}
                     </button>
                   )}
-                  </div>       
+                  </div>      
                 </div>
               </li>
             );

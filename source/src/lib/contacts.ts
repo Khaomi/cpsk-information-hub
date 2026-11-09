@@ -1,5 +1,4 @@
 import { createClient } from "@/src/lib/supabase/client";
-import type { Tables } from "@/types/database.types";
 import type { ContactFormValues } from "@/src/components/contact-form";
 import type { Tag } from "@/src/lib/tags";
 
@@ -54,28 +53,42 @@ async function attachRelations(supabase: SupabaseClient, rows: ContactViewRow[])
   if (ids.length > 0) {
     const [{ data: tagLinks, error: tagError }, { data: imageLinks, error: imageError }] = await Promise.all([
       supabase
-        .from("contact_tag" as any)
+        .from("contact_tag")
         .select("contact_id, tag:tag(id, name, category)")
         .in("contact_id", ids),
       supabase
-        .from("contact_attachment" as any)
+        .from("contact_attachment")
         .select("contact_id, attachment:attachment(url)")
         .in("contact_id", ids),
     ]);
     if (tagError) throw tagError;
     if (imageError) throw imageError;
 
-    for (const link of (tagLinks as any[]) ?? []) {
+    type TagLinkRow = {
+      contact_id: string;
+      tag: Tag | Tag[] | null;
+    };
+
+    type ImageLinkRow = {
+      contact_id: string;
+      attachment: { url: string } | { url: string }[] | null;
+    };
+
+    for (const link of (tagLinks as TagLinkRow[] | null) ?? []) {
       if (!link.tag) continue;
+      const tagObj = Array.isArray(link.tag) ? link.tag[0] : link.tag;
+      if (!tagObj) continue;
       const list = tagsByContact.get(link.contact_id) ?? [];
-      list.push(link.tag as Tag);
+      list.push(tagObj);
       tagsByContact.set(link.contact_id, list);
     }
 
-    for (const link of (imageLinks as any[]) ?? []) {
-      const typedAttachment = link.attachment as { url: string } | null;
-      if (!typedAttachment || imageByContact.has(link.contact_id)) continue;
-      imageByContact.set(link.contact_id, typedAttachment.url);
+    for (const link of (imageLinks as ImageLinkRow[] | null) ?? []) {
+      if (!link.attachment || imageByContact.has(link.contact_id)) continue;
+      const attObj = Array.isArray(link.attachment) ? link.attachment[0] : link.attachment;
+      if (attObj?.url) {
+        imageByContact.set(link.contact_id, attObj.url);
+      }
     }
   }
 
@@ -98,7 +111,7 @@ async function attachRelations(supabase: SupabaseClient, rows: ContactViewRow[])
 export async function fetchContacts(): Promise<Contact[]> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("contact_with_details" as any)
+    .from("contact_with_details")
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -108,7 +121,7 @@ export async function fetchContacts(): Promise<Contact[]> {
 export async function fetchContactById(id: string): Promise<Contact | null> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("contact_with_details" as any)
+    .from("contact_with_details")
     .select("*")
     .eq("id", id)
     .maybeSingle();
@@ -130,41 +143,48 @@ async function uploadContactImage(supabase: SupabaseClient, file: File, creatorI
   } = supabase.storage.from(CONTACT_IMAGES_BUCKET).getPublicUrl(path);
 
   const { data, error } = await supabase
-    .from("attachment" as any)
+    .from("attachment")
     .insert({ creator_id: creatorId, filename: file.name, filesize: file.size, url: publicUrl })
     .select("id")
     .single();
   if (error) throw error;
 
-  return (data as any).id as string;
+  return (data as { id: string }).id;
 }
 
 async function clearContactImage(supabase: SupabaseClient, contactId: string): Promise<void> {
+  type ContactAttachmentRow = {
+    attachment_id: string;
+    attachment: { url: string } | { url: string }[] | null;
+  };
+
   const { data: links, error } = await supabase
-    .from("contact_attachment" as any)
+    .from("contact_attachment")
     .select("attachment_id, attachment:attachment(url)")
     .eq("contact_id", contactId);
   if (error) throw error;
-  if (!links || (links as any[]).length === 0) return;
+  const typedLinks = (links as ContactAttachmentRow[] | null) ?? [];
+  if (typedLinks.length === 0) return;
 
   const { error: unlinkError } = await supabase
-    .from("contact_attachment" as any)
+    .from("contact_attachment")
     .delete()
     .eq("contact_id", contactId);
   if (unlinkError) throw unlinkError;
 
-  for (const link of links as any[]) {
-    const path = link.attachment ? extractStoragePath(link.attachment.url) : null;
+  for (const link of typedLinks) {
+    const attObj = Array.isArray(link.attachment) ? link.attachment[0] : link.attachment;
+    const path = attObj ? extractStoragePath(attObj.url) : null;
     if (path) {
       await supabase.storage.from(CONTACT_IMAGES_BUCKET).remove([path]);
     }
-    await supabase.from("attachment" as any).delete().eq("id", link.attachment_id);
+    await supabase.from("attachment").delete().eq("id", link.attachment_id);
   }
 }
 
 async function syncTags(supabase: SupabaseClient, contactId: string, tagIds: string[]): Promise<void> {
   const { error: deleteError } = await supabase
-    .from("contact_tag" as any)
+    .from("contact_tag")
     .delete()
     .eq("contact_id", contactId);
   if (deleteError) throw deleteError;
@@ -172,7 +192,7 @@ async function syncTags(supabase: SupabaseClient, contactId: string, tagIds: str
   if (tagIds.length === 0) return;
 
   const { error: insertError } = await supabase
-    .from("contact_tag" as any)
+    .from("contact_tag")
     .insert(tagIds.map((tagId) => ({ contact_id: contactId, tag_id: tagId })));
   if (insertError) throw insertError;
 }
@@ -184,7 +204,7 @@ export async function insertContact(
 ): Promise<string> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from("contact" as any)
+    .from("contact")
     .insert({
       name: values.name,
       role_type: values.roleType,
@@ -200,17 +220,18 @@ export async function insertContact(
     .single();
   if (error) throw error;
 
-  await syncTags(supabase, (data as any).id, values.tagIds);
+  const contactId = (data as { id: string }).id;
+  await syncTags(supabase, contactId, values.tagIds);
 
   if (values.imageFile) {
     const attachmentId = await uploadContactImage(supabase, values.imageFile, creatorId);
     const { error: linkError } = await supabase
-      .from("contact_attachment" as any)
-      .insert({ contact_id: (data as any).id, attachment_id: attachmentId });
+      .from("contact_attachment")
+      .insert({ contact_id: contactId, attachment_id: attachmentId });
     if (linkError) throw linkError;
   }
 
-  return (data as any).id;
+  return contactId;
 }
 
 export async function updateContact(
@@ -221,7 +242,7 @@ export async function updateContact(
 ): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
-    .from("contact" as any)
+    .from("contact")
     .update({
       name: values.name,
       role_type: values.roleType,
@@ -244,7 +265,7 @@ export async function updateContact(
   if (values.imageFile) {
     const attachmentId = await uploadContactImage(supabase, values.imageFile, editorId);
     const { error: linkError } = await supabase
-      .from("contact_attachment" as any)
+      .from("contact_attachment")
       .insert({ contact_id: id, attachment_id: attachmentId });
     if (linkError) throw linkError;
   }
@@ -253,7 +274,7 @@ export async function updateContact(
 export async function setContactActive(id: string): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
-    .from("contact" as any)
+    .from("contact")
     .update({ status: "ACTIVE" })
     .eq("id", id);
   if (error) throw error;
@@ -262,7 +283,7 @@ export async function setContactActive(id: string): Promise<void> {
 export async function setContactArchived(id: string): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
-    .from("contact" as any)
+    .from("contact")
     .update({ status: "ARCHIVED" })
     .eq("id", id);
   if (error) throw error;
@@ -271,7 +292,7 @@ export async function setContactArchived(id: string): Promise<void> {
 export async function deleteContact(id: string): Promise<void> {
   const supabase = createClient();
   await clearContactImage(supabase, id);
-  const { error } = await supabase.from("contact" as any).delete().eq("id", id);
+  const { error } = await supabase.from("contact").delete().eq("id", id);
   if (error) throw error;
 }
 

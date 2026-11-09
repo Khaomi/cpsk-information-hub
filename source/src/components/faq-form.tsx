@@ -151,11 +151,14 @@ export default function FaqForm({
             Image <span className="text-stone-400 font-normal">(optional)</span>
           </label>
           {imagePreview && (
-            <img
-              src={imagePreview}
-              alt=""
-              className="mb-2 max-h-48 rounded-md border border-stone-200 object-cover"
-            />
+            <div className="mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagePreview}
+                alt=""
+                className="mb-2 max-h-48 rounded-md border border-stone-200 object-cover"
+              />
+            </div>  
           )}
           <div className="flex items-center gap-3">
             <input

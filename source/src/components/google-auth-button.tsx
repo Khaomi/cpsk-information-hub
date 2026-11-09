@@ -1,7 +1,6 @@
 "use client";
 
 import { createClient } from "@/src/lib/supabase/client";
-import { Button } from "@/src/components/ui/button";
 import { useState } from "react";
 
 export function GoogleAuthButton() {
@@ -15,7 +14,7 @@ export function GoogleAuthButton() {
     const redirectURL = process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback` : `${window.location.origin}/auth/callback`;
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectURL,
@@ -29,14 +28,14 @@ export function GoogleAuthButton() {
       },
     });
 
-    if (error) {
-      setError(error.message);
+    if (authError) {
+      setError(authError.message);
       setIsLoading(false);
     }
   };
 
   return (
-    // <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <button
         type="button"
         className="w-full rounded-md bg-gradient-to-r from-orange-400 to-teal-500 text-white font-medium py-3 hover:opacity-90 transition-opacity"
@@ -45,7 +44,7 @@ export function GoogleAuthButton() {
       >
         {isLoading ? "Redirecting..." : "Continue with Google"}
       </button>
-    //   {error && <p className="text-sm text-red-500">{error}</p>}
-    // </div>
+      {error && <p className="text-sm text-red-500">{error}</p>}
+    </div>
   );
 }
