@@ -147,13 +147,19 @@ type ComputedDates = {
 // whatever was typed, published or not, so the date/time is never lost —
 // Publish uses the chosen dates as-is, which also lets a future Published
 // Date act as a schedule (the view flips DRAFT -> ACTIVE once it arrives).
+//
+// Published Date is optional: publishing with it left blank means "publish
+// now", so it falls back to the current time — but only while publishing.
+// A draft with no date typed has no schedule at all, so it stays null.
 function computeDates(values: AnnouncementFormValues, status: "draft" | "published"): ComputedDates {
-  const draft_starts_at = values.publishedDate ? new Date(values.publishedDate).toISOString() : null;
-  const draft_ends_at = values.expiryDate ? new Date(values.expiryDate).toISOString() : null;
-
   if (status === "draft") {
+    const draft_starts_at = values.publishedDate ? new Date(values.publishedDate).toISOString() : null;
+    const draft_ends_at = values.expiryDate ? new Date(values.expiryDate).toISOString() : null;
     return { starts_at: null, ends_at: null, draft_starts_at, draft_ends_at };
   }
+
+  const draft_starts_at = values.publishedDate ? new Date(values.publishedDate).toISOString() : new Date().toISOString();
+  const draft_ends_at = values.expiryDate ? new Date(values.expiryDate).toISOString() : null;
   return { starts_at: draft_starts_at, ends_at: draft_ends_at, draft_starts_at, draft_ends_at };
 }
 

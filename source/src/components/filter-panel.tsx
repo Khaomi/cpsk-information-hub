@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
+import { fetchTags, subscribeToTags, Tag } from "@/src/lib/tags";
 
 // Matches the Tag entity from Appendix A / the Prisma schema:
 // each filter group corresponds to a category of tags in the database.
@@ -12,12 +13,11 @@ export type FilterGroup = {
 
 export type CheckedFilters = Record<string, string[]>;
 
-const FILTER_GROUPS: FilterGroup[] = [
-  { label: "Year", options: ["Year 1", "Year 2", "Year 3", "Year 4"] },
-  { label: "Course", options: ["CS101", "CS201", "SE305"] },
-  { label: "For who", options: ["Students", "Lecturers", "TAs"] },
-  { label: "Activity", options: ["Undergraduate Research", "Open House", "Year Meeting", "Job Fair"] },
-];
+const CATEGORY_LABELS: Record<string, string> = {
+  year: "Year",
+  course: "Course",
+  activity: "Activity",
+};
 
 type FilterPanelProps = {
   checked: CheckedFilters;
@@ -28,7 +28,42 @@ type FilterPanelProps = {
 };
 
 export default function FilterPanel({ checked, onChange, onApply }: FilterPanelProps) {
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Activity: true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [groups, setGroups] = useState<FilterGroup[]>([]);
+  const [tagQuery, setTagQuery] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadTags = (): void => {
+      fetchTags()
+        .then((tags: Tag[]) => {
+      const grouped = new Map<string, string[]>();
+      for (const tag of tags) {
+        const label = (tag.category && CATEGORY_LABELS[tag.category]) || "Other";
+        grouped.set(label, [...(grouped.get(label) ?? []), tag.name]);
+      }
+      setGroups(
+        [...grouped.entries()].map(([label, options]) => ({
+          label,
+          options: options.sort((a, b) => a.localeCompare(b)),
+        })),
+      );
+          setLoadError(null);
+        })
+        .catch(() => setLoadError("Unable to load tags. Please try again."));
+    };
+    loadTags();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = (): void => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(loadTags, 200);
+    };
+    const unsubscribe = subscribeToTags(scheduleReload);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      unsubscribe();
+    };
+  }, []);
 
   const toggleGroupOpen = (label: string): void =>
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
@@ -51,7 +86,18 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
       </div>
 
       <div className="divide-y divide-rose-200">
-        {FILTER_GROUPS.map((group) => (
+        <div className="p-3 bg-rose-50">
+          <input
+            type="search"
+            value={tagQuery}
+            onChange={(event) => setTagQuery(event.target.value)}
+            placeholder="Find a tag..."
+            aria-label="Find a tag"
+            className="w-full rounded-md border border-rose-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400"
+          />
+          {loadError && <p className="mt-2 text-xs text-red-700">{loadError}</p>}
+        </div>
+        {groups.map((group) => (
           <div key={group.label}>
             <button
               type="button"
@@ -74,7 +120,9 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
             </button>
             {openGroups[group.label] && (
               <div className="px-4 py-3 bg-amber-50 text-sm text-stone-800 space-y-2">
-                {group.options.map((opt) => (
+                {group.options
+                  .filter((opt) => opt.toLowerCase().includes(tagQuery.trim().toLowerCase()))
+                  .map((opt) => (
                   <label key={opt} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -84,7 +132,7 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
                     />
                     <span>{opt}</span>
                   </label>
-                ))}
+                  ))}
               </div>
             )}
           </div>

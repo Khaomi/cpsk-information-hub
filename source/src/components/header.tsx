@@ -111,6 +111,14 @@ export default function Header() {
               <span className="hidden sm:inline">New</span>
             </Link>
           )}
+          {isStaff && (
+            <Link
+              href="/tags"
+              className="flex items-center gap-1 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+            >
+              <span className="hidden sm:inline">Tags</span>
+            </Link>
+          )}
           {user ? (
             <button
               type="button"
@@ -161,7 +169,7 @@ export default function Header() {
             <ChevronDown className={`w-4 h-4 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`} />
           </button>
 
-          <div className="flex items-center gap-2 py-2">
+          <form onSubmit={submitSearch} className="flex items-center gap-2 py-2">
             <input
               type="text"
               value={query}
@@ -188,7 +196,7 @@ export default function Header() {
             >
               <SlidersHorizontal className="w-4 h-4 text-stone-700" />
             </button>
-          </div>
+          </form>
         </div>
 
         {mobileNavOpen && (

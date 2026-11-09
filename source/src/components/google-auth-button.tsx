@@ -4,7 +4,7 @@ import { createClient } from "@/src/lib/supabase/client";
 import { Button } from "@/src/components/ui/button";
 import { useState } from "react";
 
-export function GoogleAuthButton() {
+export function GoogleAuthButton({ next }: { next?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -12,7 +12,10 @@ export function GoogleAuthButton() {
     setIsLoading(true);
     setError(null);
 
-    const redirectURL = process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback` : `${window.location.origin}/auth/callback`;
+    const base = process.env.NEXT_PUBLIC_BASE_URL ?? window.location.origin;
+    const redirectURL = next
+      ? `${base}/auth/callback?next=${encodeURIComponent(next)}`
+      : `${base}/auth/callback`;
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({

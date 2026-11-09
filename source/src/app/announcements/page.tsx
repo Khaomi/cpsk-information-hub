@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Announcement,
@@ -25,6 +25,8 @@ const STATUS_BADGE: Record<AnnouncementStatus, string> = {
 };
 
 export default function AnnouncementsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isStaff } = useRole();
   const searchParams = useSearchParams();
   const query = (searchParams.get("query") ?? "").trim().toLowerCase();
@@ -35,6 +37,8 @@ export default function AnnouncementsPage() {
   // confirming: which item's confirmation box is open, and for which action
   const [confirming, setConfirming] = useState<{ id: string; type: "archive" | "delete" } | null>(null);
   const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
+  const selectedTags = searchParams.getAll("tag");
+  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
   const loadItems = (): void => {
     fetchAnnouncements()
@@ -76,6 +80,15 @@ export default function AnnouncementsPage() {
   );
   
   // console.log("search debug:", { query, total: items.length, shown: visibleItems.length });
+  ).filter((a) => {
+    const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => a.tags.some((item) => item.name === tag));
+    const matchesQuery =
+      !query ||
+      a.title.toLowerCase().includes(query) ||
+      a.body.toLowerCase().includes(query) ||
+      a.tags.some((tag) => tag.name.toLowerCase().includes(query));
+    return matchesTags && matchesQuery;
+  });
 
   const handleArchive = async (a: Announcement): Promise<void> => {
     await setAnnouncementArchived(a.id, a.startsAt);
@@ -106,7 +119,10 @@ export default function AnnouncementsPage() {
   };
 
   const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tag");
+    selectedTags.forEach((tag) => params.append("tag", tag));
+    router.push(`?${params.toString()}`);
   };
 
   return (

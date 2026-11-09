@@ -89,17 +89,16 @@ export default function AnnouncementForm({
     }));
   };
 
-  // SRS-4 / SRS-5: title and body are always required. A draft has no
-  // schedule yet (starts_at/ends_at stay null), so Published Date is only
-  // required once the user actually publishes.
+  // SRS-4 / SRS-5: title and body are always required. Published Date is
+  // optional — leaving it blank while publishing means "publish now" (see
+  // computeDates), so it only needs validating when the user did type one.
   const validateRequiredFields = (status: "draft" | "published"): FormErrors => {
     const next: FormErrors = {};
     if (!values.title.trim()) next.title = "Title is required.";
     if (!values.body.trim()) next.body = "Body is required.";
-    if (status === "published" && !values.publishedDate) {
-      next.publishedDate = "Published date is required.";
-    } else if (
+    if (
       status === "published" &&
+      values.publishedDate &&
       // Only re-check on an actual change — an already-past date left
       // untouched while editing an old published announcement is fine.
       values.publishedDate !== initialValues.publishedDate &&
@@ -205,7 +204,8 @@ export default function AnnouncementForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="publishedDate" className="block text-sm font-medium text-stone-700 mb-1">
-              Published Date &amp; Time <span className="text-red-500">*</span>
+              Published Date &amp; Time{" "}
+              <span className="text-stone-400 font-normal">(optional — defaults to now)</span>
             </label>
             <input
               id="publishedDate"
