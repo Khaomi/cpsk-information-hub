@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, FormEvent, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -9,7 +9,12 @@ import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
 import LocaleSwitcher from "@/src/components/locale-switcher";
 
-const NAV_ITEMS = [
+type NavItem = {
+  labelKey: string;
+  href: string;
+};
+
+const NAV_ITEMS: NavItem[] = [
   { labelKey: "header.nav.all", href: "/" },
   { labelKey: "header.nav.announcements", href: "/announcements" },
   { labelKey: "header.nav.faqs", href: "/faqs" },
@@ -25,10 +30,9 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [draftQuery, setDraftQuery] = useState("");
-
+  const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { open: openMobileFilters } = useMobileFilters();
@@ -39,11 +43,13 @@ export default function Header() {
 
   useEffect(() => {
     if (!SEARCHABLE_PATHS.includes(pathname)) return;
-    setDraftQuery(urlQuery);
+    if (searchInputRef.current) {
+      searchInputRef.current.value = urlQuery;
+    }
   }, [pathname, urlQuery]);
 
   const runSearch = useCallback(
-    (term: string) => {
+    (term: string): void => {
       if (!SEARCHABLE_PATHS.includes(pathname)) return;
 
       const params = new URLSearchParams(searchParams.toString());
@@ -58,21 +64,19 @@ export default function Header() {
     [pathname, searchParams, router]
   );
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+  const submitSearch = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    runSearch(draftQuery);
+    runSearch(searchInputRef.current?.value ?? "");
   };
 
-  const handleQueryChange = (value: string) => {
-    setDraftQuery(value);
+  const handleSearchSubmit = (): void => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    runSearch(searchInputRef.current?.value ?? "");
+  };
 
+  const handleQueryChange = (value: string): void => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => runSearch(value), 300);
-  };
-
-  const handleSearchSubmit = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    runSearch(draftQuery);
   };
 
   return (
@@ -141,8 +145,9 @@ export default function Header() {
 
           <form onSubmit={submitSearch} className="flex items-center gap-2 py-2">
             <input
+              ref={searchInputRef}
               type="text"
-              value={draftQuery}
+              defaultValue={urlQuery}
               onChange={(e) => handleQueryChange(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSearchSubmit();
