@@ -23,6 +23,7 @@
       "ariaLabel": "Open filters"
     },
     "new": "New",
+    "tags": "Tags",
     "account": {
       "signIn": "Sign in",
       "signOut": "Sign out"
@@ -36,8 +37,14 @@
       "year": "Year",
       "course": "Course",
       "forWho": "For who",
-      "activity": "Activity"
+      "activity": "Activity",
+      "other": "Other"
     },
+    "findTag": {
+      "placeholder": "Find a tag...",
+      "ariaLabel": "Find a tag"
+    },
+    "loadError": "Unable to load tags. Please try again.",
     "search": "Search",
     "clear": "Clear",
     "drawer": {
@@ -117,6 +124,41 @@
     "edit": {
       "heading": "Edit Announcement",
       "description": "Update the details below and save your changes."
+    }
+  },
+  "tags": {
+    "eyebrow": "Content settings",
+    "heading": "Tag management",
+    "description": "Create and maintain the tags used to organise department content.",
+    "uncategorised": "Uncategorised",
+    "add": {
+      "heading": "Add a tag",
+      "submit": "Add tag"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Year 2",
+      "category": "Category"
+    },
+    "list": {
+      "heading": "Existing tags",
+      "empty": "No tags have been created yet."
+    },
+    "actions": {
+      "save": "Save",
+      "cancelEditing": "Cancel editing",
+      "editAriaLabel": "Edit {name}",
+      "deleteAriaLabel": "Delete {name}"
+    },
+    "confirmDelete": "Delete the tag “{name}”?",
+    "errors": {
+      "load": "Unable to load tags.",
+      "nameRequired": "Enter a tag name.",
+      "nameTooLong": "Tag names must be 80 characters or fewer.",
+      "nameDuplicate": "A tag with this name already exists.",
+      "create": "Unable to create this tag. Please try again.",
+      "update": "Unable to update this tag. You may not have permission to edit this tag.",
+      "delete": "Unable to delete this tag. You may not have permission to delete this tag."
     }
   },
   "login": {

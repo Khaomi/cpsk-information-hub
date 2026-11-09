@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 import { LogOut, User, SlidersHorizontal, Plus } from "lucide-react";
 import { useRole } from "@/src/components/role-context";
 import { Link, useRouter } from "@/src/i18n/navigation";
 import { createClient } from "@/src/lib/supabase/client";
+import { fetchTags, subscribeToTags, Tag } from "@/src/lib/tags";
 
 // Matches the Tag entity from Appendix A / the Prisma schema:
 // each filter group corresponds to a category of tags in the database.
@@ -21,12 +22,14 @@ export type FilterGroup = {
 
 export type CheckedFilters = Record<string, string[]>;
 
-const FILTER_GROUPS: FilterGroup[] = [
-  { label: "Year", labelKey: "filters.groups.year", options: ["Year 1", "Year 2", "Year 3", "Year 4"] },
-  { label: "Course", labelKey: "filters.groups.course", options: ["CS101", "CS201", "SE305"] },
-  { label: "For who", labelKey: "filters.groups.forWho", options: ["Students", "Lecturers", "TAs"] },
-  { label: "Activity", labelKey: "filters.groups.activity", options: ["Undergraduate Research", "Open House", "Year Meeting", "Job Fair"] },
-];
+// Tag category (public.tag_category enum) -> group id + translation key.
+// Tags without a known category fall into the "Other" group.
+const CATEGORY_GROUPS: Record<string, { label: string; labelKey: string }> = {
+  year: { label: "Year", labelKey: "filters.groups.year" },
+  course: { label: "Course", labelKey: "filters.groups.course" },
+  activity: { label: "Activity", labelKey: "filters.groups.activity" },
+};
+const OTHER_GROUP = { label: "Other", labelKey: "filters.groups.other" };
 
 type FilterPanelProps = {
   checked: CheckedFilters;
@@ -39,9 +42,46 @@ type FilterPanelProps = {
 export default function FilterPanel({ checked, onChange, onApply }: FilterPanelProps) {
   const t = useTranslations();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [groups, setGroups] = useState<FilterGroup[]>([]);
+  const [tagQuery, setTagQuery] = useState("");
+  const [loadError, setLoadError] = useState<boolean>(false);
 
     const { user, isStaff } = useRole();
     const router = useRouter();
+
+  useEffect(() => {
+    const loadTags = (): void => {
+      fetchTags()
+        .then((tags: Tag[]) => {
+          const grouped = new Map<string, FilterGroup>();
+          for (const tag of tags) {
+            const meta = (tag.category && CATEGORY_GROUPS[tag.category]) || OTHER_GROUP;
+            const group = grouped.get(meta.label) ?? { ...meta, options: [] };
+            group.options.push(tag.name);
+            grouped.set(meta.label, group);
+          }
+          setGroups(
+            [...grouped.values()].map((group) => ({
+              ...group,
+              options: group.options.sort((a, b) => a.localeCompare(b)),
+            })),
+          );
+          setLoadError(false);
+        })
+        .catch(() => setLoadError(true));
+    };
+    loadTags();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = (): void => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(loadTags, 200);
+    };
+    const unsubscribe = subscribeToTags(scheduleReload);
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      unsubscribe();
+    };
+  }, []);
 
   const toggleGroupOpen = (label: string): void =>
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
@@ -72,7 +112,18 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
       </div>
 
       <div className="divide-y divide-rose-200">
-        {FILTER_GROUPS.map((group) => (
+        <div className="p-3 bg-rose-50">
+          <input
+            type="search"
+            value={tagQuery}
+            onChange={(event) => setTagQuery(event.target.value)}
+            placeholder={t("filters.findTag.placeholder")}
+            aria-label={t("filters.findTag.ariaLabel")}
+            className="w-full rounded-md border border-rose-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400"
+          />
+          {loadError && <p className="mt-2 text-xs text-red-700">{t("filters.loadError")}</p>}
+        </div>
+        {groups.map((group) => (
           <div key={group.label}>
             <button
               type="button"
@@ -95,7 +146,9 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
             </button>
             {openGroups[group.label] && (
               <div className="px-4 py-3 bg-amber-50 text-sm text-stone-800 space-y-2">
-                {group.options.map((opt) => (
+                {group.options
+                  .filter((opt) => opt.toLowerCase().includes(tagQuery.trim().toLowerCase()))
+                  .map((opt) => (
                   <label key={opt} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -105,7 +158,7 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
                     />
                     <span>{opt}</span>
                   </label>
-                ))}
+                  ))}
               </div>
             )}
           </div>
