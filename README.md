@@ -24,15 +24,15 @@ This project is a software for managing information within the Computer Engineer
 
 | Feature                   | Status                    |
 |---------------------------|---------------------------|
-| Login                     | Done                      |
-| View Announcements        | In Progress               |
-| Create/Edit Announcement  | In Progress               |
-| Archive Announcement      | In Progress               |
+| Login                     | In Progress               |
+| View Announcements        | Done                      |
+| Create/Edit Announcement  | Done                      |
+| Archive Announcement      | Done                      |
 | FAQs                      | Done                      |
-| Schedules                 | Not Started               |
+| Schedules                 | Done                      |
 | Contacts                  | Done                      |
 | Tag Management            | Done                      |
-| Keyword Search            | Not Started               |
+| Keyword Search            | In Progress               |
 | Database connection       | Done                      |
 | Deployment                | Not Started               |
 
