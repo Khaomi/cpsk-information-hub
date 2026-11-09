@@ -7,19 +7,20 @@ import { LogOut, Search, User, ChevronDown, SlidersHorizontal, Plus } from "luci
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
 import { createClient } from "@/src/lib/supabase/client";
+import LocaleSwitcher from "@/src/components/locale-switcher";
 
 type NavItem = {
-  label: string;
+  labelKey: string;
   href: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "All", href: "/" },
-  { label: "Announcements", href: "/announcements" },
-  { label: "FAQs", href: "/faqs" },
-  { label: "Schedules", href: "/schedules" },
-  { label: "Contacts", href: "/contacts" },
-  { label: "Resource links", href: "/resources" },
+  { labelKey: "header.nav.all", href: "/" },
+  { labelKey: "header.nav.announcements", href: "/announcements" },
+  { labelKey: "header.nav.faqs", href: "/faqs" },
+  { labelKey: "header.nav.schedules", href: "/schedules" },
+  { labelKey: "header.nav.contacts", href: "/contacts" },
+  { labelKey: "header.nav.resources", href: "/resources" },
 ];
 
 // Pages that currently read ?query= and filter their own content.
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
 const SEARCHABLE_PATHS = ["/announcements", "/resources"];
 
 export default function Header() {
+  const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,7 +36,17 @@ export default function Header() {
   const [query, setQuery] = useState<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { open: openMobileFilters } = useMobileFilters();
-  const { user, isStaff } = useRole();
+  const { user, role, isStaff } = useRole();
+  // Tag management is admin-only (SRS US-14 / SRS-11 / AD-5)
+  const isAdmin = role === "admin";
+
+  const submitSearch = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    if (query.trim()) params.set("q", query.trim());
+    else params.delete("q");
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   // Only reconcile with the URL on pages that actually support search.
   // - If we already have a typed keyword (e.g. carried over from a page
@@ -95,7 +107,7 @@ export default function Header() {
         <Link href="/" className="flex items-baseline gap-2">
           <span className="text-lg font-bold tracking-tight">CPSK</span>
           <span className="hidden sm:inline text-sm text-stone-500">
-            Department Information &amp; Communication Hub
+            {t("common.tagline")}
           </span>
         </Link>
 
@@ -108,28 +120,18 @@ export default function Header() {
               className="flex items-center gap-1 rounded-md bg-teal-600 text-white text-sm font-medium px-3 py-1.5 hover:bg-teal-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New</span>
+              <span className="hidden sm:inline">{t("header.new")}</span>
             </Link>
           )}
-          {user ? (
-            <button
-              type="button"
-              onClick={handleAccountClick}
-              aria-label="Sign out"
-              title={user.displayName ?? user.email ?? "Sign out"}
-              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
-            >
-              <LogOut className="w-4 h-4 text-stone-600" />
-            </button>
-          ) : (
+          {isAdmin && (
             <Link
-              href="/auth/login"
-              aria-label="Sign in"
-              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+              href="/tags"
+              className="flex items-center gap-1 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
             >
-              <User className="w-4 h-4 text-stone-600" />
+              <span className="hidden sm:inline">{t("header.tags")}</span>
             </Link>
           )}
+          <LocaleSwitcher />
         </div>
       </div>
 
@@ -147,7 +149,7 @@ export default function Header() {
                   : "text-white/80 hover:text-white"
                 }`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             ))}
           </nav>
@@ -157,11 +159,14 @@ export default function Header() {
             onClick={() => setMobileNavOpen((v) => !v)}
             className="sm:hidden py-2.5 text-sm font-medium text-white flex items-center gap-1"
           >
-            {NAV_ITEMS.find((i) => i.href === pathname)?.label ?? "Menu"}
+            {(() => {
+              const current = NAV_ITEMS.find((i) => i.href === pathname);
+              return current ? t(current.labelKey) : t("header.mobile.menuFallback");
+            })()}
             <ChevronDown className={`w-4 h-4 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`} />
           </button>
 
-          <div className="flex items-center gap-2 py-2">
+          <form onSubmit={submitSearch} className="flex items-center gap-2 py-2">
             <input
               type="text"
               value={query}
@@ -183,12 +188,12 @@ export default function Header() {
             <button
               type="button"
               onClick={openMobileFilters}
-              aria-label="Open filters"
+              aria-label={t("header.filters.ariaLabel")}
               className="w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             >
               <SlidersHorizontal className="w-4 h-4 text-stone-700" />
             </button>
-          </div>
+          </form>
         </div>
 
         {mobileNavOpen && (
@@ -200,7 +205,7 @@ export default function Header() {
                 onClick={() => setMobileNavOpen(false)}
                 className={`px-4 py-2.5 ${pathname === item.href ? "text-white bg-white/10 font-semibold" : "text-white/85"}`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             ))}
           </nav>

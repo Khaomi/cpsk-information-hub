@@ -1,9 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database.types";
 import { createServerClient } from "@supabase/ssr";
+import { routing } from "@/src/i18n/routing";
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
+export async function updateSession(request: NextRequest, response?: NextResponse) {
+  // When a response is already queued (e.g. next-intl's locale redirect),
+  // reuse it instead of creating a fresh one, so its status/location aren't
+  // silently discarded.
+  let supabaseResponse = response ?? NextResponse.next({
     request,
   });
   // With Fluid compute, don't put this client in a global environment
@@ -20,9 +24,14 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          // Only fabricate a new response when nothing upstream already
+          // produced one — recreating it here on a token refresh would drop
+          // an in-flight next-intl redirect.
+          if (!response) {
+            supabaseResponse = NextResponse.next({
+              request,
+            });
+          }
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
@@ -37,23 +46,30 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: If you remove getClaims() and you use server-side rendering
   // with the Supabase client, your users may be randomly logged out.
-  await supabase.auth.getClaims();
-  
-  // Remove the server side redirect, we gonna have a mix of protected and non protected route
-  // const { data } = await supabase.auth.getClaims();
-  // const user = data?.claims;
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
 
-  // if (
-  //   request.nextUrl.pathname !== "/" &&
-  //   !user &&
-  //   !request.nextUrl.pathname.startsWith("/login") &&
-  //   !request.nextUrl.pathname.startsWith("/auth")
-  // ) {
-  //   // no user, potentially respond by redirecting the user to the login page
-  //   const url = request.nextUrl.clone();
-  //   url.pathname = "/auth/login";
-  //   return NextResponse.redirect(url);
-  // }
+  // Locale prefix is "as-needed" — only non-default locales (e.g. "th")
+  // show up in the pathname, so strip one off (if present) before checking
+  // for the unprefixed "/auth" exemption.
+  const pathname = request.nextUrl.pathname;
+  const localeMatch = pathname.match(
+    new RegExp(`^/(${routing.locales.join("|")})(?=/|$)`),
+  );
+  const locale = localeMatch?.[1] ?? routing.defaultLocale;
+  const pathWithoutLocale = localeMatch
+    ? pathname.slice(localeMatch[0].length) || "/"
+    : pathname;
+
+  if (!user && !pathWithoutLocale.startsWith("/auth")) {
+    // no user, redirect to the login page (including "/" itself — the
+    // whole app requires sign-in, there's no public home feed)
+    const url = request.nextUrl.clone();
+    const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
+    url.pathname = `${localePrefix}/auth/login`;
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:
