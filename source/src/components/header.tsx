@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Search, User, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
@@ -29,6 +29,14 @@ export default function Header() {
   const [query, setQuery] = useState<string>("");
   const { open: openMobileFilters } = useMobileFilters();
   const { user, isStaff } = useRole();
+
+  const submitSearch = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    if (query.trim()) params.set("q", query.trim());
+    else params.delete("q");
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const handleAccountClick = async (): Promise<void> => {
     if (!user) return;
@@ -118,7 +126,7 @@ export default function Header() {
             <ChevronDown className={`w-4 h-4 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`} />
           </button>
 
-          <div className="flex items-center gap-2 py-2">
+          <form onSubmit={submitSearch} className="flex items-center gap-2 py-2">
             <input
               type="text"
               value={query}
@@ -127,7 +135,7 @@ export default function Header() {
               className="w-32 sm:w-48 lg:w-72 rounded-md border-0 bg-white/90 px-3 py-1.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-white/70"
             />
             <button
-              type="button"
+              type="submit"
               aria-label="Search"
               className="w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             >
@@ -141,7 +149,7 @@ export default function Header() {
             >
               <SlidersHorizontal className="w-4 h-4 text-stone-700" />
             </button>
-          </div>
+          </form>
         </div>
 
         {mobileNavOpen && (
