@@ -82,6 +82,9 @@ export default function AnnouncementsPage() {
       : isStaff
         ? items.filter((a) => a.status !== "DRAFT")
         : items.filter((a) => a.status === "ACTIVE")
+
+  
+  // console.log("search debug:", { query, total: items.length, shown: visibleItems.length });
   ).filter((a) => {
     // US-12: items whose tags include at least one selected tag.
     // US-16: case-insensitive keyword match on title/body (and tag names).
