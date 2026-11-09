@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { createClient } from "@/src/lib/supabase/client";
-import { Button } from "@/src/components/ui/button";
 import { useState } from "react";
 
 export function GoogleAuthButton({ next }: { next?: string }) {
@@ -20,7 +19,7 @@ export function GoogleAuthButton({ next }: { next?: string }) {
       : `${base}/auth/callback`;
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectURL,
@@ -34,14 +33,14 @@ export function GoogleAuthButton({ next }: { next?: string }) {
       },
     });
 
-    if (error) {
-      setError(error.message);
+    if (authError) {
+      setError(authError.message);
       setIsLoading(false);
     }
   };
 
   return (
-    // <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <button
         type="button"
         className="w-full rounded-md bg-gradient-to-r from-orange-400 to-teal-500 text-white font-medium py-3 hover:opacity-90 transition-opacity"
@@ -50,7 +49,7 @@ export function GoogleAuthButton({ next }: { next?: string }) {
       >
         {isLoading ? t("login.redirecting") : t("login.continueWithGoogle")}
       </button>
-    //   {error && <p className="text-sm text-red-500">{error}</p>}
-    // </div>
+      {error && <p className="text-sm text-red-500">{error}</p>}
+    </div>
   );
 }
