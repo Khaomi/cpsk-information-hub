@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import FilterPanel, { CheckedFilters } from "@/src/components/filter-panel";
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useState } from "react";
@@ -15,6 +16,7 @@ type FilterableLayoutProps = {
 // sidebar) — filtering always happens through the same slide-in drawer,
 // on phone, tablet, or desktop alike.
 export default function FilterableLayout({ children, onApplyFilter }: FilterableLayoutProps) {
+  const t = useTranslations();
   const [checked, setChecked] = useState<CheckedFilters>({});
   const { isOpen: filtersOpen, close: closeFilters } = useMobileFilters();
 
@@ -32,11 +34,11 @@ export default function FilterableLayout({ children, onApplyFilter }: Filterable
           <div className="absolute inset-0 bg-black/40" onClick={closeFilters} />
           <div className="absolute right-0 top-0 h-full w-full max-w-xs sm:w-72 bg-stone-50 shadow-xl overflow-y-auto">
             <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200">
-              <span className="font-semibold text-sm">Filters</span>
+              <span className="font-semibold text-sm">{t("filters.drawer.title")}</span>
               <button
                 type="button"
                 onClick={closeFilters}
-                aria-label="Close filters"
+                aria-label={t("filters.drawer.closeAriaLabel")}
                 className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-200"
               >
                 <X className="w-4 h-4" />

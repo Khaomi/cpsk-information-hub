@@ -1,10 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { createClient } from "@/src/lib/supabase/client";
 import { Button } from "@/src/components/ui/button";
 import { useState } from "react";
 
 export function GoogleAuthButton({ next }: { next?: string }) {
+  const t = useTranslations();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -46,7 +48,7 @@ export function GoogleAuthButton({ next }: { next?: string }) {
         onClick={handleGoogleSignIn}
         disabled={isLoading}
       >
-        {isLoading ? "Redirecting..." : "Continue with Google"}
+        {isLoading ? t("login.redirecting") : t("login.continueWithGoogle")}
       </button>
     //   {error && <p className="text-sm text-red-500">{error}</p>}
     // </div>

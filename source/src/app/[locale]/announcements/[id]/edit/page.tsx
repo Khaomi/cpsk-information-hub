@@ -1,7 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/src/i18n/navigation";
 import AnnouncementForm, { AnnouncementFormValues } from "@/src/components/announcement-form";
 import Toast from "@/src/components/toast";
 import { Announcement, fetchAnnouncementById, toDateTimeInputValue, updateAnnouncement } from "@/src/lib/announcements";
@@ -14,6 +15,7 @@ type Props = {
 
 export default function EditAnnouncementPage({ params }: Props) {
   const { id } = use(params);
+  const t = useTranslations();
   const router = useRouter();
   const { user, isStaff, loading: roleLoading } = useRole();
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -43,7 +45,7 @@ export default function EditAnnouncementPage({ params }: Props) {
     try {
       await updateAnnouncement(id, values, status, user.id);
     } catch {
-      setError("Something went wrong while saving. Please try again.");
+      setError(t("validation.saveFailed"));
       return;
     }
 
@@ -60,7 +62,7 @@ export default function EditAnnouncementPage({ params }: Props) {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       </div>
     );
   }
@@ -68,7 +70,7 @@ export default function EditAnnouncementPage({ params }: Props) {
   if (!announcement) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <p className="text-sm text-stone-500">Announcement not found.</p>
+        <p className="text-sm text-stone-500">{t("announcements.notFound")}</p>
       </div>
     );
   }
@@ -85,8 +87,8 @@ export default function EditAnnouncementPage({ params }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-1">Edit Announcement</h1>
-      <p className="text-sm text-stone-500 mb-6">Update the details below and save your changes.</p>
+      <h1 className="text-2xl font-bold mb-1">{t("announcements.edit.heading")}</h1>
+      <p className="text-sm text-stone-500 mb-6">{t("announcements.edit.description")}</p>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       <AnnouncementForm
         tags={tags}
@@ -96,7 +98,7 @@ export default function EditAnnouncementPage({ params }: Props) {
         onCancel={() => router.push("/announcements")}
       />
 
-      {showDraftToast && <Toast message="Saved to Drafts" onDismiss={() => setShowDraftToast(false)} />}
+      {showDraftToast && <Toast message={t("announcements.draftToast")} onDismiss={() => setShowDraftToast(false)} />}
     </div>
   );
 }

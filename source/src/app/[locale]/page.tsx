@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import { fetchAnnouncements, formatDisplayDate, subscribeToAnnouncements, summarize } from "@/src/lib/announcements";
 import { colorForTag } from "@/src/lib/tags";
@@ -16,6 +17,7 @@ type FeedItem = {
   href: string; // which section page this links through to
   title: string;
   snippet: string;
+  body: string; // full text, used for keyword search (snippet is truncated)
   date: string;
   tags: { label: string; color: string }[];
 };
@@ -33,7 +35,9 @@ const TYPE_BADGE: Record<FeedItem["contentType"], string> = {
 // Announcement portion of this feed is real — fetched below.
 
 export default function HomePage() {
+  const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +55,7 @@ export default function HomePage() {
             href: `/announcements/${a.id}`,
             title: a.title,
             snippet: summarize(a.body),
+            body: a.body,
             date: formatDisplayDate(a.startsAt),
             tags: a.tags.map((tag) => ({ label: tag.name, color: colorForTag(tag) })),
           }));
@@ -77,28 +82,30 @@ export default function HomePage() {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("tag");
     selectedTags.forEach((tag) => params.append("tag", tag));
-    router.push(`?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
+  // US-12: show items whose tags include at least one selected tag.
+  // US-16: case-insensitive keyword match on title/body (and tag names).
   const visibleItems = feedItems.filter((item) => {
-    const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => item.tags.some((itemTag) => itemTag.label === tag));
+    const matchesTags = selectedTags.length === 0 || item.tags.some((itemTag) => selectedTags.includes(itemTag.label));
     const matchesQuery =
       !query ||
       item.title.toLowerCase().includes(query) ||
-      item.snippet.toLowerCase().includes(query) ||
+      item.body.toLowerCase().includes(query) ||
       item.tags.some((tag) => tag.label.toLowerCase().includes(query));
     return matchesTags && matchesQuery;
   });
 
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
-      <h1 className="text-2xl font-bold mb-4">Latest News</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("common.latestNews")}</h1>
 
       {loading ? (
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          No content matches your filters right now.
+          {t("home.empty")}
         </div>
       ) : (
         <ul className="space-y-4">
