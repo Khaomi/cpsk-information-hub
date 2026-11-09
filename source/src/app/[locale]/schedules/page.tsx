@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
 import { useRole } from "@/src/components/role-context";
 import ScheduleCalendar from "@/src/components/schedules/schedule-calendar";
 import ScheduleComingUp, { ComingUpDay } from "@/src/components/schedules/schedule-coming-up";
@@ -43,8 +42,27 @@ export default function SchedulesPage() {
   const [form, setForm] = useState<FormState>(null);
   const [now, setNow] = useState<CurrentMoment | null>(null);
   const [tags, setTags] = useState<Tag[]>([]);
+  // Set when the page was opened as /schedules?new=1 (see below)
+  const [createRequested, setCreateRequested] = useState(false);
 
   useEffect(() => {
+    // Events are created from the header's "+ New" → /new → "Schedule",
+    // which links to /schedules?new=1. Read the param once, then drop it from
+    // the URL so a refresh or Back doesn't open the form again.
+    // window.location is used rather than useSearchParams, which would need
+    // a Suspense boundary for the build.
+    const params = new URLSearchParams(window.location.search);
+    const wantsCreate = params.get("new") === "1";
+    if (wantsCreate) {
+      params.delete("new");
+      const query = params.toString();
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+      );
+    }
+
     fetchSchedules()
       .then((list) => {
         // "Today" is read on the client after mount rather than during render,
@@ -56,6 +74,10 @@ export default function SchedulesPage() {
         setSelectedKey(today);
         setView({ year: d.getFullYear(), month: d.getMonth() });
         setNow(getCurrentMoment());
+        // Only ever switch it on: in dev, Strict Mode runs this effect twice,
+        // and the second run no longer sees ?new=1 (the first removed it), so
+        // passing wantsCreate through would close the form the first run opened.
+        if (wantsCreate) setCreateRequested(true);
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
@@ -124,18 +146,28 @@ export default function SchedulesPage() {
     });
   };
 
+  // The open form: an explicit edit, or the add form asked for by ?new=1.
+  // isStaff is false until the role has loaded, so the add form only appears
+  // once we know the user is staff (and never for anyone else).
+  const activeForm: FormState = form ?? (createRequested && isStaff ? { mode: "create" } : null);
+
+  const closeForm = (): void => {
+    setForm(null);
+    setCreateRequested(false);
+  };
+
   const handleSave = async (values: ScheduleEventInput): Promise<void> => {
-    if (!form) return;
+    if (!activeForm) return;
     // Apply the saved row straight to the list rather than refetching, so a
     // failed refetch can't report an event that was saved as "not saved".
-    if (form.mode === "create") {
+    if (activeForm.mode === "create") {
       const created = await insertSchedule(values);
       setItems((prev) => [...prev.filter((e) => e.id !== created.id), created]);
     } else {
-      const updated = await updateSchedule(form.event.id, values);
+      const updated = await updateSchedule(activeForm.event.id, values);
       setItems((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
     }
-    setForm(null);
+    closeForm();
     // Show the day the event was saved on, so the change is visible
     selectDay(values.date);
   };
@@ -149,20 +181,7 @@ export default function SchedulesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Schedules</h1>
-        {isStaff && (
-          <button
-            type="button"
-            onClick={() => setForm({ mode: "create" })}
-            disabled={loading || loadError}
-            className="flex items-center gap-1 rounded-md bg-teal-600 text-white text-sm font-medium px-3 py-1.5 hover:bg-teal-700 transition-colors disabled:opacity-60"
-          >
-            <Plus className="w-4 h-4" />
-            Add event
-          </button>
-        )}
-      </div>
+      <h1 className="text-2xl font-bold mb-4">Schedules</h1>
 
       {loadError ? (
         <p className="text-sm text-red-600">Could not load schedules. Please refresh the page to try again.</p>
@@ -210,13 +229,15 @@ export default function SchedulesPage() {
         </div>
       )}
 
-      {isStaff && form && (
+      {isStaff && activeForm && (
         <ScheduleFormModal
-          mode={form.mode}
-          initialValues={form.mode === "edit" ? scheduleFormValuesFrom(form.event) : emptyScheduleFormValues(selectedKey)}
+          mode={activeForm.mode}
+          initialValues={
+            activeForm.mode === "edit" ? scheduleFormValuesFrom(activeForm.event) : emptyScheduleFormValues(selectedKey)
+          }
           tags={tags}
           onSubmit={handleSave}
-          onCancel={() => setForm(null)}
+          onCancel={closeForm}
         />
       )}
     </div>
