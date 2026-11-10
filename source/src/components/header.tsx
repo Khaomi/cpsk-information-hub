@@ -4,7 +4,14 @@ import { useCallback, useEffect, useRef, useState, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Search, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  SlidersHorizontal,
+  Plus,
+  LogOut,
+  User,
+} from "lucide-react";
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
 import LocaleSwitcher from "@/src/components/locale-switcher";
