@@ -35,17 +35,18 @@ export default function AnnouncementsPage() {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { user, isStaff } = useRole();
+  const searchParams = useSearchParams();
+  
+  
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
+  const selectedTags = searchParams.getAll("tag");
 
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState<"all" | "mine">("all");
-  // confirming: which item's confirmation box is open, and for which action
   const [confirming, setConfirming] = useState<{ id: string; type: "archive" | "delete" } | null>(null);
   const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
-  const selectedTags = searchParams.getAll("tag");
-  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
   const loadItems = (): void => {
     fetchAnnouncements()
@@ -80,6 +81,9 @@ export default function AnnouncementsPage() {
       : isStaff
         ? items.filter((a) => a.status !== "DRAFT")
         : items.filter((a) => a.status === "ACTIVE")
+
+  
+  // console.log("search debug:", { query, total: items.length, shown: visibleItems.length });
   ).filter((a) => {
     // US-12: items whose tags include at least one selected tag.
     // US-16: case-insensitive keyword match on title/body (and tag names).
@@ -160,6 +164,11 @@ export default function AnnouncementsPage() {
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
+          {query
+            ? "No announcements match your search."
+            : scope === "mine"
+              ? "You haven't created any announcements yet."
+              : "No announcements match your filters right now."}
           {scope === "mine" ? t("announcements.empty.mine") : t("announcements.empty.all")}
         </div>
       ) : (
