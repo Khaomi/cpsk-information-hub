@@ -3,10 +3,6 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
-import { LogOut, User, SlidersHorizontal, Plus } from "lucide-react";
-import { useRole } from "@/src/components/role-context";
-import { Link, useRouter } from "@/src/i18n/navigation";
-import { createClient } from "@/src/lib/supabase/client";
 import { fetchTags, subscribeToTags, Tag } from "@/src/lib/tags";
 
 // Matches the Tag entity from Appendix A / the Prisma schema:
@@ -45,9 +41,6 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
   const [groups, setGroups] = useState<FilterGroup[]>([]);
   const [tagQuery, setTagQuery] = useState("");
   const [loadError, setLoadError] = useState<boolean>(false);
-
-    const { user, isStaff } = useRole();
-    const router = useRouter();
 
   useEffect(() => {
     const loadTags = (): void => {
@@ -96,14 +89,6 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
 
   const allSelected: string[] = Object.values(checked).flat();
   const clearAll = (): void => onChange({});
-
-    const handleAccountClick = async (): Promise<void> => {
-      if (!user) return;
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      router.push("/auth/login");
-      router.refresh();
-    };
 
   return (
     <div className="rounded-lg bg-rose-50 border border-rose-100 overflow-hidden">
@@ -182,26 +167,6 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
         >
           {t("filters.clear")}
         </button>
-
-                  {user ? (
-                    <button
-                      type="button"
-                      onClick={handleAccountClick}
-                      aria-label={t("header.account.signOut")}
-                      title={user.displayName ?? user.email ?? t("header.account.signOut")}
-                      className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4 text-stone-600" />
-                    </button>
-                  ) : (
-                    <Link
-                      href="/auth/login"
-                      aria-label={t("header.account.signIn")}
-                      className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
-                    >
-                      <User className="w-4 h-4 text-stone-600" />
-                    </Link>
-                  )}
       </div>
     </div>
   );
