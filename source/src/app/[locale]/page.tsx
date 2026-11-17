@@ -43,7 +43,7 @@ export default function HomePage() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const selectedTags = searchParams.getAll("tag");
-  const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
 
   const loadItems = (): void => {
     // Each source is fetched independently, so if one fails the other
