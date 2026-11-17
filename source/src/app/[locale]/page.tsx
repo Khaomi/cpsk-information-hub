@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
-import { fetchAnnouncements, formatDisplayDate, subscribeToAnnouncements, summarize } from "@/src/lib/announcements";
+import { Announcement, fetchAnnouncements, formatDisplayDate, subscribeToAnnouncements, summarize } from "@/src/lib/announcements";
+import { ResourceLink, fetchResourceLinks, subscribeToResourceLinks } from "@/src/lib/resourceLinks";
 import { colorForTag } from "@/src/lib/tags";
 
 // A single mixed-feed item, regardless of which content type it came from.
@@ -19,6 +20,7 @@ type FeedItem = {
   snippet: string;
   body: string; // full text, used for keyword search (snippet is truncated)
   date: string;
+  sortTime: number; // raw timestamp, used only to sort the mixed feed newest-first
   tags: { label: string; color: string }[];
 };
 
@@ -30,9 +32,8 @@ const TYPE_BADGE: Record<FeedItem["contentType"], string> = {
   "Resource link": "bg-emerald-100 text-emerald-800",
 };
 
-// FAQ/Schedule/Contact/Resource link have no real tables yet (see /new,
-// where those content types are still "Coming soon"), so only the
-// Announcement portion of this feed is real — fetched below.
+// Announcements and Resource links are fetched below. FAQ/Schedule/Contact
+// will be added to this feed once their branches are merged into main.
 
 export default function HomePage() {
   const t = useTranslations();
@@ -45,9 +46,14 @@ export default function HomePage() {
   const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
   const loadItems = (): void => {
-    fetchAnnouncements()
-      .then((announcements) => {
-        const items: FeedItem[] = announcements
+    // Each source is fetched independently, so if one fails the other
+    // content type still shows up instead of blanking the whole feed.
+    Promise.all([
+      fetchAnnouncements().catch((): Announcement[] => []),
+      fetchResourceLinks().catch((): ResourceLink[] => []),
+    ])
+      .then(([announcements, resourceLinks]) => {
+        const announcementItems: FeedItem[] = announcements
           .filter((a) => a.status === "ACTIVE")
           .map((a) => ({
             id: a.id,
@@ -57,9 +63,28 @@ export default function HomePage() {
             snippet: summarize(a.body),
             body: a.body,
             date: formatDisplayDate(a.startsAt),
+            sortTime: a.startsAt ? new Date(a.startsAt).getTime() : 0,
             tags: a.tags.map((tag) => ({ label: tag.name, color: colorForTag(tag) })),
           }));
-        setFeedItems(items);
+
+        // Resource links have no detail page, so the card links through to
+        // the Resource links section, where the URL itself is clickable.
+        // The URL doubles as the searchable "body" text.
+          const resourceLinkItems: FeedItem[] = resourceLinks
+            .filter((rl) => rl.status === "ACTIVE")
+            .map((rl) => ({
+              id: rl.id,
+              contentType: "Resource link",
+              href: `/resources/${rl.id}`,   // <-- was "/resources"
+              title: rl.title,
+              snippet: summarize(rl.url),
+              body: rl.url,
+              date: formatDisplayDate(rl.startsAt),
+              sortTime: rl.startsAt ? new Date(rl.startsAt).getTime() : 0,
+              tags: rl.tags.map((tag) => ({ label: tag.name, color: colorForTag(tag) })),
+            }));
+
+        setFeedItems([...announcementItems, ...resourceLinkItems].sort((a, b) => b.sortTime - a.sortTime));
       })
       .finally(() => setLoading(false));
   };
@@ -71,10 +96,12 @@ export default function HomePage() {
       if (timeout) clearTimeout(timeout);
       timeout = setTimeout(loadItems, 300);
     };
-    const unsubscribe = subscribeToAnnouncements(scheduleReload);
+    const unsubscribeAnnouncements = subscribeToAnnouncements(scheduleReload);
+    const unsubscribeResourceLinks = subscribeToResourceLinks(scheduleReload);
     return () => {
       if (timeout) clearTimeout(timeout);
-      unsubscribe();
+      unsubscribeAnnouncements();
+      unsubscribeResourceLinks();
     };
   }, []);
 
@@ -126,7 +153,7 @@ export default function HomePage() {
                     </span>
                   ))}
                 </div>
-                <p className="text-sm text-stone-600 mt-2 leading-relaxed">{item.snippet}</p>
+                <p className="text-sm text-stone-600 mt-2 leading-relaxed break-words">{item.snippet}</p>
               </Link>
             </li>
           ))}
