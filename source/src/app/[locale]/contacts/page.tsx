@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Contact,
@@ -22,6 +23,8 @@ const STATUS_BADGE: Record<ContactStatus, string> = {
 
 export default function ContactsPage() {
   const { user, isStaff } = useRole();
+  const searchParams = useSearchParams();
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
 
   const [items, setItems] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,15 +56,26 @@ export default function ContactsPage() {
     };
   }, []);
 
-  const visibleItems =
+  // Keyword search only looks at the contact's name and email address.
+  const visibleItems = (
     isStaff && scope === "mine"
       ? items.filter((c) => c.creatorId === user?.id)
       : isStaff
         ? items.filter((c) => c.status !== "DRAFT")
-        : items.filter((c) => c.status === "ACTIVE");
+        : items.filter((c) => c.status === "ACTIVE")
+  ).filter((c) =>
+    query
+      ? c.name.toLowerCase().includes(query) || (c.email ?? "").toLowerCase().includes(query)
+      : true
+  );
 
   const lecturers = visibleItems.filter((c) => c.roleType === "LECTURER");
   const tas = visibleItems.filter((c) => c.roleType === "TA");
+
+  // While searching, a group's heading (Lecturers / TAs) is only kept if at
+  // least one of its contacts matches. With no search, both always show.
+  const showLecturers = !query || lecturers.length > 0;
+  const showTas = !query || tas.length > 0;
 
   const handleDelete = async (id: string): Promise<void> => {
     await deleteContact(id);
@@ -244,29 +258,37 @@ export default function ContactsPage() {
         <p className="text-sm text-stone-500">Loading…</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          {scope === "mine" ? "You haven't created any contacts yet." : "No contacts match your filters right now."}
+          {query
+            ? "No contacts match your search."
+            : scope === "mine"
+              ? "You haven't created any contacts yet."
+              : "No contacts match your filters right now."}
         </div>
       ) : (
         <div className="space-y-8">
           {/* Lecturers Section */}
-          <section>
-            <h2 className="text-2xl font-bold text-stone-900 mb-4">Lecturers</h2>
-            {lecturers.length === 0 ? (
-              <p className="text-sm text-stone-500 italic">No lecturers found.</p>
-            ) : (
-              <ul className="space-y-4">{lecturers.map(renderContactCard)}</ul>
-            )}
-          </section>
+          {showLecturers && (
+            <section>
+              <h2 className="text-2xl font-bold text-stone-900 mb-4">Lecturers</h2>
+              {lecturers.length === 0 ? (
+                <p className="text-sm text-stone-500 italic">No lecturers found.</p>
+              ) : (
+                <ul className="space-y-4">{lecturers.map(renderContactCard)}</ul>
+              )}
+            </section>
+          )}
 
           {/* TAs Section */}
-          <section>
-            <h2 className="text-2xl font-bold text-stone-900 mb-4">TAs</h2>
-            {tas.length === 0 ? (
-              <p className="text-sm text-stone-500 italic">No TAs found.</p>
-            ) : (
-              <ul className="space-y-4">{tas.map(renderContactCard)}</ul>
-            )}
-          </section>
+          {showTas && (
+            <section>
+              <h2 className="text-2xl font-bold text-stone-900 mb-4">TAs</h2>
+              {tas.length === 0 ? (
+                <p className="text-sm text-stone-500 italic">No TAs found.</p>
+              ) : (
+                <ul className="space-y-4">{tas.map(renderContactCard)}</ul>
+              )}
+            </section>
+          )}
         </div>
       )}
     </FilterableLayout>
