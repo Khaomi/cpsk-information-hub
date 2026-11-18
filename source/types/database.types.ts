@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.17"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       announcement: {
@@ -828,13 +803,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "announcement_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "announcement_creator_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profile"
@@ -844,7 +812,7 @@ export type Database = {
             foreignKeyName: "announcement_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
-            referencedRelation: "profile_with_auth_user"
+            referencedRelation: "profile"
             referencedColumns: ["id"]
           },
           {
@@ -857,13 +825,20 @@ export type Database = {
           {
             foreignKeyName: "announcement_creator_id_fkey"
             columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profile_with_auth_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcement_creator_id_fkey"
+            columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "resource_link_with_details"
             referencedColumns: ["author_id"]
           },
           {
             foreignKeyName: "announcement_creator_id_fkey"
-            columns: ["author_id"]
+            columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "resource_link_with_details"
             referencedColumns: ["author_id"]
@@ -917,7 +892,6 @@ export type Database = {
       }
       faq_with_details: {
         Row: {
-          author_email: string | null
           author_name: string | null
           author_role: Database["public"]["Enums"]["app_role"] | null
           created_at: string | null
@@ -1120,9 +1094,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "lecturer", "ta", "student"],
