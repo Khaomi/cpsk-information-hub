@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
+import { createClient } from "@/src/lib/supabase/client";
 import LocaleSwitcher from "@/src/components/locale-switcher";
 
 type NavItem = {
@@ -43,7 +44,7 @@ export default function Header() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { open: openMobileFilters } = useMobileFilters();
-  const { role, isStaff } = useRole();
+  const { user, role, isStaff } = useRole();
   const isAdmin = role === "admin";
 
   const urlQuery = searchParams.get("query") ?? "";
@@ -86,6 +87,13 @@ export default function Header() {
     debounceRef.current = setTimeout(() => runSearch(value), 300);
   };
 
+  const handleSignOut = async (): Promise<void> => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+    router.refresh();
+  };
+
   return (
     <header className="bg-white border-b border-stone-200">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -115,6 +123,25 @@ export default function Header() {
             </Link>
           )}
           <LocaleSwitcher />
+          {user ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label={t("header.account.signOut")}
+              title={user.displayName ?? user.email ?? t("header.account.signOut")}
+              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+            >
+              <LogOut className="w-4 h-4 text-stone-600" />
+            </button>
+          ) : (
+            <Link
+              href="/auth/login"
+              aria-label={t("header.account.signIn")}
+              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+            >
+              <User className="w-4 h-4 text-stone-600" />
+            </Link>
+          )}
         </div>
       </div>
 
