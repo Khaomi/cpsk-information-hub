@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef ,useState } from "react";
+import { useEffect, useMemo ,useState } from "react";
 import { useRole } from "@/src/components/role-context";
 import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
@@ -159,34 +159,33 @@ export default function SchedulesPage() {
     setView({ year: d.getFullYear(), month: d.getMonth() });
   };
 
-  // Jump to a matching day when the search term changes.
-  // Remembers which query it already jumped for, so later changes (clicking
-  // another day, live updates) don't pull the selection back.
-  const jumpedForQuery = useRef("");
+  // Jump to a matching day when the search term changes. Remembers which query
+  // it already jumped for, so later changes (clicking another day, live
+  // updates) don't pull the selection back. This runs during render, guarded
+  // so it settles after one extra pass, instead of in an effect.
+  const [jumpedQuery, setJumpedQuery] = useState("");
 
-  useEffect(() => {
-    if (!query) {
-      jumpedForQuery.current = "";
-      return;
-    }
-    if (!selectedKey || !todayKey) return; // page data not loaded yet
-    if (jumpedForQuery.current === query) return;
-
+  if (!query && jumpedQuery !== "") {
+    setJumpedQuery("");
+  } else if (query && query !== jumpedQuery && selectedKey && todayKey) {
     const matchingKeys = Object.keys(eventsByDate)
       .filter((key) => eventsByDate[key]?.length)
       .sort();
-    if (matchingKeys.length === 0) return; // nothing yet, try again when data arrives
 
-    jumpedForQuery.current = query;
+    // No matches yet: leave jumpedQuery alone so it retries when data arrives.
+    if (matchingKeys.length > 0) {
+      setJumpedQuery(query);
 
-    // Already on a day with a match: stay put.
-    if (eventsByDate[selectedKey]?.length) return;
+      // Stay on the current day if it already matches, otherwise go to the next
+      // upcoming match, or the latest past one if none are ahead.
+      const target = eventsByDate[selectedKey]?.length
+        ? selectedKey
+        : (matchingKeys.find((key) => key >= todayKey) ?? matchingKeys[matchingKeys.length - 1]);
 
-    // Otherwise the next upcoming match, or the latest past one if none are ahead.
-    const target = matchingKeys.find((key) => key >= todayKey) ?? matchingKeys[matchingKeys.length - 1];
-    selectDay(target);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, eventsByDate, todayKey]);
+      // Also re-syncs the calendar to that day's month.
+      selectDay(target);
+    }
+  }
 
   const shiftMonth = (delta: number): void => {
     setView((prev) => {
