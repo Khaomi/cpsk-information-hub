@@ -55,8 +55,10 @@
   "form": {
     "fields": {
       "title": "Title",
+      "question": "Question",
       "url": "URL",
       "body": "Body",
+      "description": "Description",
       "image": "Image",
       "imageOptional": "(optional)",
       "publishedDate": "Published Date & Time",
@@ -136,6 +138,90 @@
       "description": "Update the details below and save your changes."
     }
   },
+  "faqs": {
+    "heading": "FAQs",
+    "subheading": "Ask questions anonymously and wait for staff to reply or browse resolved topics.",
+    "askButton": "Ask a Question",
+    "statusLabel": "Status",
+    "anonymous": "Anonymous",
+    "student": "Student",
+    "statuses": {
+      "ALL": "ALL",
+      "UNANSWERED": "UNANSWERED",
+      "ANSWERED": "ANSWERED",
+      "RESOLVED": "RESOLVED"
+    },
+    "empty": "No questions found under this filter.",
+    "notFound": "Question not found.",
+    "askedBy": "Asked by {author} • {date}",
+    "repliesCount": "Replies ({count})",
+    "noReplies": "No replies yet.",
+    "replyPlaceholder": "Write an official staff response or reply...",
+    "postReply": "Post Reply",
+    "staffOnlyReply": "Only staff members can post replies to questions.",
+    "actions": {
+      "answer": "Answer",
+      "markAsResolved": "Mark as Resolved",
+      "delete": "Delete",
+      "reopenquestion": "Reopen Question"
+    },
+    "new": {
+      "heading": "Ask a Question",
+      "description": "Post your question or inquiry here. Submissions are anonymous to students by default."
+    },
+    "errors": {
+      "load": "Failed to load question details or question does not exist."
+    }
+  },
+  "contacts": {
+    "heading": "Contacts",
+    "lecturers": "Lecturers",
+    "tas": "TAs",
+    "scope": {
+      "all": "All",
+      "mine": "My Contacts"
+    },
+    "notfound":"Contact not found.",
+    "emptystaff": "You haven't created any contacts yet.",
+    "empty": "No contacts match your filters right now.",
+    "emptyta": "No TAs found.",
+    "emptylec": "No lecturers found.",
+    "back": "Back to Contacts",
+    "status": {
+      "active": "ACTIVE",
+      "inactive": "INACTIVE"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "roleType": "Role Type",
+      "lecturer": "Lecturer",
+      "ta": "TA",
+      "profilePhoto": "Profile Photo",
+      "email": "Email",
+      "building": "Building",
+      "room": "Room",
+      "bio": "Bio / Notes",
+      "courseTags": "Course Tags",
+      "otherWay": "Other Contact Method "
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "archive": "Archive"
+    },
+    "new": {
+      "heading": "New Contact",
+      "description": "Fill in the contact details below. You can save as a draft or publish immediately."
+    },
+    "editPage": {
+      "heading": "Edit Contact",
+      "description": "Update the contact details below."
+    },
+    "error": {
+      "name": "Name is required.",
+      "email": "Email is required." 
+      }
+    },
   "resources": {
     "title": "Links",
     "notFound": "Resource link not found.",

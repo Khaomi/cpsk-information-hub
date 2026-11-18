@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 import type { ContactRoleType } from "@/src/lib/contacts";
 
@@ -49,6 +50,7 @@ export default function ContactForm({
   onSubmit,
   onCancel,
 }: ContactFormProps) {
+  const t = useTranslations();
   const [values, setValues] = useState<ContactFormValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [imagePreview, setImagePreview] = useState<string | null>(initialImageUrl);
@@ -89,8 +91,8 @@ export default function ContactForm({
 
   const validateRequiredFields = (): FormErrors => {
     const next: FormErrors = {};
-    if (!values.name.trim()) next.name = "Name is required.";
-    if (!values.email || !values.email.trim()) next.email = "Email is required.";
+    if (!values.name.trim()) next.name = t("contacts.error.name");
+    if (!values.email || !values.email.trim()) next.email = t("contacts.error.email");
     return next;
   };
 
@@ -98,7 +100,7 @@ export default function ContactForm({
     const fieldErrors = validateRequiredFields();
 
     if (status === "published" && values.tagIds.length === 0) {
-      fieldErrors.tags = "Select at least one tag before publishing.";
+      fieldErrors.tags = t("validation.selectTagBeforePublish");
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -118,14 +120,14 @@ export default function ContactForm({
         className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back
+        {t("common.back")}
       </button>
 
       <div className="space-y-4">
         {/* Name Field */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-stone-700 mb-1">
-            Full Name <span className="text-red-500">*</span>
+            {t("contacts.fields.fullName")} <span className="text-red-500">*</span>
           </label>
           <input
             id="name"
@@ -142,7 +144,7 @@ export default function ContactForm({
         {/* Role Type */}
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Role Type <span className="text-red-500">*</span>
+            {t("contacts.fields.roleType")}  <span className="text-red-500">*</span>
           </label>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 text-sm text-stone-700">
@@ -154,7 +156,7 @@ export default function ContactForm({
                 onChange={() => update("roleType", "LECTURER")}
                 className="text-teal-600 focus:ring-teal-500"
               />
-              Lecturer
+              {t("contacts.fields.lecturer")}
             </label>
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input
@@ -165,7 +167,7 @@ export default function ContactForm({
                 onChange={() => update("roleType", "TA")}
                 className="text-teal-600 focus:ring-teal-500"
               />
-              TA
+              {t("contacts.fields.ta")}
             </label>
           </div>
         </div>
@@ -173,7 +175,7 @@ export default function ContactForm({
         {/* Image Upload */}
         <div>
           <label htmlFor="image" className="block text-sm font-medium text-stone-700 mb-1">
-            Profile Photo <span className="text-stone-400 font-normal">(optional)</span>
+            {t("contacts.fields.profilePhoto")}<span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
           </label>
           {imagePreview && (
             <div>
@@ -199,7 +201,7 @@ export default function ContactForm({
                 onClick={handleRemoveImage}
                 className="text-sm text-red-600 hover:text-red-800 font-medium"
               >
-                Remove
+                {t("form.actions.remove")}
               </button>
             )}
           </div>
@@ -208,7 +210,7 @@ export default function ContactForm({
         {/* Email Field (Required) */}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
-            Email <span className="text-red-500">*</span>
+            {t("contacts.fields.email")} <span className="text-red-500">*</span>
           </label>
           <input
             id="email"
@@ -227,7 +229,7 @@ export default function ContactForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="building" className="block text-sm font-medium text-stone-700 mb-1">
-                Building <span className="text-stone-400 font-normal">(optional)</span>
+                {t("contacts.fields.building")} <span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
               </label>
               <input
                 id="building"
@@ -239,7 +241,7 @@ export default function ContactForm({
             </div>
             <div>
               <label htmlFor="room" className="block text-sm font-medium text-stone-700 mb-1">
-                Room <span className="text-stone-400 font-normal">(optional)</span>
+                {t("contacts.fields.room")} <span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
               </label>
               <input
                 id="room"
@@ -253,7 +255,7 @@ export default function ContactForm({
         ) : (
           <div>
             <label htmlFor="otherContact" className="block text-sm font-medium text-stone-700 mb-1">
-              Other Contact Method <span className="text-stone-400 font-normal">(optional)</span>
+              {t("contacts.fields.otherWay")} <span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
             </label>
             <input
               id="otherContact"
@@ -269,7 +271,7 @@ export default function ContactForm({
         {/* Bio / Info (Required) */}
         <div>
           <label htmlFor="bio" className="block text-sm font-medium text-stone-700 mb-1">
-            Bio / Notes <span className="text-stone-400 font-normal">(optional)</span>
+            {t("contacts.fields.bio")} <span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
           </label>
           <textarea
             id="bio"
@@ -286,10 +288,10 @@ export default function ContactForm({
         {/* Tags Selection */}
         <fieldset>
           <legend className="block text-sm font-medium text-stone-700 mb-1">
-            Course Tags <span className="text-stone-400 font-normal">(required to publish)</span>
+            {t("contacts.fields.courseTags")} <span className="text-stone-400 font-normal">{t("form.fields.targetTagsRequired")}</span>
           </legend>
           <div className="flex flex-wrap gap-2">
-            {tags.length === 0 && <p className="text-xs text-stone-400">No tags available yet.</p>}
+            {tags.length === 0 && <p className="text-xs text-stone-400">{t("form.noTagsAvailable")}</p>}
             {tags.map((tag) => {
               const selected = values.tagIds.includes(tag.id);
               return (
@@ -318,14 +320,14 @@ export default function ContactForm({
             onClick={() => handleSave("published")}
             className="rounded-md bg-teal-600 text-white text-sm font-medium px-4 py-2 hover:bg-teal-700 transition-colors"
           >
-            Publish
+            {t("form.actions.publish")}
           </button>
           <button
             type="button"
             onClick={() => handleSave("draft")}
             className="rounded-md border border-stone-300 text-stone-700 text-sm font-medium px-4 py-2 hover:bg-stone-50 transition-colors"
           >
-            Save as Draft
+            {t("form.actions.saveAsDraft")}
           </button>
         </div>
       </div>
