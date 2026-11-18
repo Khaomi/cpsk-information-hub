@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
@@ -23,6 +24,7 @@ const STATUS_BADGE: Record<ContactStatus, string> = {
 
 export default function ContactsPage() {
   const { user, isStaff } = useRole();
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const query = (searchParams.get("query") ?? "").trim().toLowerCase();
 
@@ -83,20 +85,6 @@ export default function ContactsPage() {
     loadItems();
   };
 
-  const handlePublish = async (item: Contact): Promise<void> => {
-    if (item.tags.length === 0) {
-      setPublishErrors((prev) => ({ ...prev, [item.id]: "Select at least one tag before publishing." }));
-      return;
-    }
-    setPublishErrors((prev) => {
-      const next = { ...prev };
-      delete next[item.id];
-      return next;
-    });
-    await setContactActive(item.id);
-    loadItems();
-  };
-
   const handleApplyFilter = (selectedTags: string[]): void => {
     console.log("Applying filter:", selectedTags);
   };
@@ -142,20 +130,20 @@ export default function ContactsPage() {
           {/* Contact Details Grid */}
           <div className="text-xs text-stone-700 space-y-1 mt-3">
             <p>
-              <span className="font-medium">Email:</span> {c.email || "—"}
+              <span className="font-medium">{t("contacts.fields.email")}:</span> {c.email || "—"}
             </p>
             {c.roleType === "LECTURER" ? (
               <div className="flex gap-8">
                 <p>
-                  <span className="font-medium">Building:</span> {c.building || "—"}
+                  <span className="font-medium">{t("contacts.fields.building")}:</span> {c.building || "—"}
                 </p>
                 <p>
-                  <span className="font-medium">Room:</span> {c.room || "—"}
+                  <span className="font-medium">{t("contacts.fields.room")}:</span> {c.room || "—"}
                 </p>
               </div>
             ) : (
               <p>
-                <span className="font-medium">Other way:</span> {c.otherContact || "—"}
+                <span className="font-medium">{t("contacts.fields.otherWay")}:</span> {c.otherContact || "—"}
               </p>
             )}
           </div>
@@ -165,17 +153,8 @@ export default function ContactsPage() {
       {/* Staff Actions */}
       {isStaff && (
         <div className="flex items-center gap-3 mt-4 pt-3 border-t border-stone-100 flex-wrap">
-          {c.status === "DRAFT" && (
-            <button
-              type="button"
-              onClick={() => handlePublish(c)}
-              className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
-            >
-              Publish
-            </button>
-          )}
           <Link href={`/contacts/${c.id}/edit`} className="text-sm text-teal-700 hover:text-teal-900 font-medium">
-            Edit
+            {t("announcements.actions.edit")}
           </Link>
           
           <button
@@ -183,7 +162,7 @@ export default function ContactsPage() {
             onClick={() => setConfirming({ id: c.id, type: "delete" })}
             className="text-sm text-red-700 hover:text-red-900 font-medium"
           >
-            Delete
+            {t("faqs.actions.delete")}
           </button>
         </div>
       )}
@@ -193,7 +172,7 @@ export default function ContactsPage() {
           <p className="text-xs text-red-600">
             {publishErrors[c.id]}{" "}
             <Link href={`/contacts/${c.id}/edit`} className="underline hover:text-red-800">
-              Edit to add tags
+              {t("announcements.actions.editToAddTags")}
             </Link>
           </p>
         </div>
@@ -202,7 +181,7 @@ export default function ContactsPage() {
       {confirming?.id === c.id && confirming.type === "delete" && (
         <div className="mt-2 pt-2 border-t border-stone-100 bg-red-50 -mx-4 -mb-4 px-4 pb-4 rounded-b-lg">
           <p className="text-xs text-red-700 font-medium mb-2">
-            Permanently delete this contact? This cannot be undone.
+            {t("announcements.confirm.deleteList")}
           </p>
           <div className="flex gap-2">
             <button
@@ -210,14 +189,14 @@ export default function ContactsPage() {
               onClick={() => handleDelete(c.id)}
               className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors"
             >
-              Yes, delete permanently
+              {t("announcements.confirm.yesDelete")}
             </button>
             <button
               type="button"
               onClick={() => setConfirming(null)}
               className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-white transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -228,7 +207,7 @@ export default function ContactsPage() {
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-3xl font-extrabold text-stone-900">Contacts</h1>
+        <h1 className="text-3xl font-extrabold text-stone-900">{t("contacts.heading")}</h1>
 
         {isStaff && (
           <div className="flex rounded-md border border-stone-300 overflow-hidden text-sm">
@@ -239,7 +218,7 @@ export default function ContactsPage() {
                 scope === "all" ? "bg-teal-600 text-white" : "bg-white text-stone-700 hover:bg-stone-50"
               }`}
             >
-              All
+              {t("contacts.scope.all")}
             </button>
             <button
               type="button"
@@ -248,14 +227,14 @@ export default function ContactsPage() {
                 scope === "mine" ? "bg-teal-600 text-white" : "bg-white text-stone-700 hover:bg-stone-50"
               }`}
             >
-              My Contacts
+              {t("contacts.scope.mine")}
             </button>
           </div>
         )}
       </div>
 
       {loading ? (
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
           {query
@@ -271,7 +250,7 @@ export default function ContactsPage() {
             <section>
               <h2 className="text-2xl font-bold text-stone-900 mb-4">Lecturers</h2>
               {lecturers.length === 0 ? (
-                <p className="text-sm text-stone-500 italic">No lecturers found.</p>
+                <p className="text-sm text-stone-500 italic">{t("contacts.emptylec")}</p>
               ) : (
                 <ul className="space-y-4">{lecturers.map(renderContactCard)}</ul>
               )}
@@ -283,7 +262,7 @@ export default function ContactsPage() {
             <section>
               <h2 className="text-2xl font-bold text-stone-900 mb-4">TAs</h2>
               {tas.length === 0 ? (
-                <p className="text-sm text-stone-500 italic">No TAs found.</p>
+                <p className="text-sm text-stone-500 italic">{t("contacts.emptyta")}</p>
               ) : (
                 <ul className="space-y-4">{tas.map(renderContactCard)}</ul>
               )}

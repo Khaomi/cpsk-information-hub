@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import ContactForm, { ContactFormValues } from "@/src/components/contact-form";
 import Toast from "@/src/components/toast";
 import { Contact, fetchContactById, updateContact } from "@/src/lib/contacts";
@@ -21,6 +22,7 @@ export default function EditContactPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [showDraftToast, setShowDraftToast] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations();
 
   useEffect(() => {
     if (!roleLoading && !isStaff) {
@@ -43,7 +45,7 @@ export default function EditContactPage({ params }: Props) {
     try {
       await updateContact(id, values, status, user.id);
     } catch {
-      setError("Something went wrong while saving. Please try again.");
+      setError(t("validation.saveFailed"));
       return;
     }
 
@@ -60,7 +62,7 @@ export default function EditContactPage({ params }: Props) {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       </div>
     );
   }
@@ -68,7 +70,7 @@ export default function EditContactPage({ params }: Props) {
   if (!contact) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <p className="text-sm text-stone-500">Contact not found.</p>
+        <p className="text-sm text-stone-500">{t("contacts.notfound")}</p>
       </div>
     );
   }
@@ -88,8 +90,8 @@ export default function EditContactPage({ params }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-1">Edit Contact</h1>
-      <p className="text-sm text-stone-500 mb-6">Update contact details and save changes.</p>
+      <h1 className="text-2xl font-bold mb-1">{t("contacts.editPage.heading")}</h1>
+      <p className="text-sm text-stone-500 mb-6">{t("contacts.editPage.description")}</p>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       <ContactForm
         tags={tags}

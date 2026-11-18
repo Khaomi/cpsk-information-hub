@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import FilterableLayout from "@/src/components/filterable-layout";
@@ -22,12 +23,11 @@ type Props = {
 export default function ContactDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { isStaff } = useRole();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
-  const [confirming, setConfirming] = useState<"archive" | "delete" | null>(null);
-  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishError] = useState<string | null>(null);
+  const t = useTranslations();
 
   useEffect(() => {
     fetchContactById(id)
@@ -56,7 +56,7 @@ export default function ContactDetailPage({ params }: Props) {
   if (loading) {
     return (
       <FilterableLayout onApplyFilter={handleApplyFilter}>
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       </FilterableLayout>
     );
   }
@@ -64,26 +64,10 @@ export default function ContactDetailPage({ params }: Props) {
   if (!contact) {
     return (
       <FilterableLayout onApplyFilter={handleApplyFilter}>
-        <p className="text-sm text-stone-500">Contact not found.</p>
+        <p className="text-sm text-stone-500">{t("contacts.notfound")}</p>
       </FilterableLayout>
     );
   }
-
-  const handleDeletePermanently = async (): Promise<void> => {
-    await deleteContact(contact.id);
-    setConfirming(null);
-    router.push("/contacts");
-  };
-
-  const handlePublish = async (): Promise<void> => {
-    if (contact.tags.length === 0) {
-      setPublishError("Select at least one tag before publishing.");
-      return;
-    }
-    setPublishError(null);
-    await setContactActive(contact.id);
-    router.push("/contacts");
-  };
 
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
@@ -95,93 +79,25 @@ export default function ContactDetailPage({ params }: Props) {
             className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="font-medium text-stone-900">Back to Contacts</span>
+            <span className="font-medium text-stone-900">{t("contacts.back")}</span>
           </button>
-
-          {isStaff && (
-            <div className="flex items-center gap-3 flex-wrap">
-              {contact.status === "DRAFT" && (
-                <button
-                  type="button"
-                  onClick={handlePublish}
-                  className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
-                >
-                  Publish
-                </button>
-              )}
-              {contact.status === "ARCHIVED" && (
-                <button
-                  type="button"
-                  onClick={handlePublish}
-                  className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
-                >
-                  Restore to Published
-                </button>
-              )}
-              <Link href={`/contacts/${id}/edit`} className="text-sm text-teal-700 hover:text-teal-900 font-medium">
-                Edit
-              </Link>
-              {contact.status !== "ARCHIVED" ? (
-                <button
-                  type="button"
-                  onClick={() => setConfirming("archive")}
-                  className="text-sm text-red-600 hover:text-red-800 font-medium"
-                >
-                  Archive
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirming("delete")}
-                  className="text-sm text-red-700 hover:text-red-900 font-medium"
-                >
-                  Delete Permanently
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         {publishError && (
           <p className="text-xs text-red-600 mb-3">
             {publishError}{" "}
             <Link href={`/contacts/${id}/edit`} className="underline hover:text-red-800">
-              Edit to add tags
+              {t("announcements.actions.editToAddTags")}
             </Link>
           </p>
         )}
 
-        {confirming === "delete" && (
-          <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3">
-            <p className="text-xs text-red-700 font-medium mb-2">
-              Permanently delete this contact? This cannot be undone.
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleDeletePermanently}
-                className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors"
-              >
-                Yes, delete permanently
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(null)}
-                className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-white transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="flex gap-6 items-start my-4">
-          <div className="w-32 h-32 bg-stone-300 rounded-md overflow-hidden shrink-0">
+          {/* Contact Photo / Avatar Box (matching list card size & shape) */}
+          <div className="w-24 h-24 bg-stone-300 rounded-md overflow-hidden shrink-0">
             {contact.imageUrl ? (
-              <div className="mb-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={contact.imageUrl} alt={contact.name} className="w-full h-full object-cover" />
-              </div>
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={contact.imageUrl} alt={contact.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-stone-300" />
             )}
@@ -189,37 +105,32 @@ export default function ContactDetailPage({ params }: Props) {
 
           <div>
             <h1 className="text-2xl font-bold text-stone-900">{contact.name}</h1>
+            
+            {/* Tags matching the exact style used in the contacts list page */}
             <div className="flex flex-wrap gap-1.5 my-2">
               {contact.tags.map((tag) => (
-                <span key={tag.id} className={`text-xs font-semibold px-2.5 py-1 rounded-md ${colorForTag(tag)}`}>
+                <span key={tag.id} className={`text-xs px-3 py-1 rounded-full font-medium ${colorForTag(tag)}`}>
                   {tag.name}
                 </span>
               ))}
-              <span
-                className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
-                  contact.roleType === "LECTURER" ? "bg-lime-300 text-lime-900" : "bg-orange-200 text-orange-900"
-                }`}
-              >
-                {contact.roleType === "LECTURER" ? "Lecturer" : "TA"}
-              </span>
             </div>
 
-            <div className="text-sm text-stone-700 space-y-1.5 mt-4">
+            <div className="text-xs text-stone-700 space-y-1.5 mt-3">
               <p>
-                <span className="font-semibold">Email:</span> {contact.email || "—"}
+                <span className="font-medium">{t("contacts.fields.email")}:</span> {contact.email || "—"}
               </p>
               {contact.roleType === "LECTURER" ? (
-                <>
+                <div className="flex gap-8">
                   <p>
-                    <span className="font-semibold">Building:</span> {contact.building || "—"}
+                    <span className="font-medium">{t("contacts.fields.building")}:</span> {contact.building || "—"}
                   </p>
                   <p>
-                    <span className="font-semibold">Room:</span> {contact.room || "—"}
+                    <span className="font-medium">{t("contacts.fields.room")}:</span> {contact.room || "—"}
                   </p>
-                </>
+                </div>
               ) : (
                 <p>
-                  <span className="font-semibold">Other way:</span> {contact.otherContact || "—"}
+                  <span className="font-medium">{t("contacts.fields.otherWay")}:</span> {contact.otherContact || "—"}
                 </p>
               )}
             </div>
@@ -228,7 +139,7 @@ export default function ContactDetailPage({ params }: Props) {
 
         {contact.bio && (
           <div className="mt-6 pt-4 border-t border-stone-200">
-            <h3 className="font-semibold text-stone-800 mb-2">Biography / Additional Info</h3>
+            <h3 className="font-semibold text-stone-800 mb-2">{t("contacts.fields.bio")}</h3>
             <p className="text-sm text-stone-600 leading-relaxed whitespace-pre-line">{contact.bio}</p>
           </div>
         )}

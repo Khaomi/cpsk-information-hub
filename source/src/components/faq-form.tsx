@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 
@@ -38,6 +39,7 @@ export default function FaqForm({
   onSubmit,
   onCancel,
 }: FaqFormProps) {
+  const t = useTranslations();
   const [values, setValues] = useState<FaqFormValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [imagePreview, setImagePreview] = useState<string | null>(initialImageUrl);
@@ -78,8 +80,8 @@ export default function FaqForm({
 
   const validateRequiredFields = (): FormErrors => {
     const next: FormErrors = {};
-    if (!values.question.trim()) next.question = "Question is required.";
-    if (!values.description.trim()) next.description = "Desription is required.";
+    if (!values.question.trim()) next.question = t("form.errors.titleRequired");
+    if (!values.description.trim()) next.description = t("form.errors.bodyRequired");
     return next;
   };
 
@@ -87,7 +89,7 @@ export default function FaqForm({
     const fieldErrors = validateRequiredFields();
 
     if (status === "published" && values.tagIds.length === 0) {
-      fieldErrors.tags = "Select at least one tag before publishing.";
+      fieldErrors.tags = t("validation.selectTagBeforePublish");
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -107,14 +109,14 @@ export default function FaqForm({
         className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back
+        {t("common.back")}
       </button>
 
       <div className="space-y-4">
         {/* Question Field */}
         <div>
           <label htmlFor="question" className="block text-sm font-medium text-stone-700 mb-1">
-            Question <span className="text-red-500">*</span>
+            {t("form.fields.question")} <span className="text-red-500">*</span>
           </label>
           <input
             id="question"
@@ -128,10 +130,10 @@ export default function FaqForm({
           {errors.question && <p className="text-xs text-red-600 mt-1">{errors.question}</p>}
         </div>
 
-        {/* Desription Field */}
+        {/* Description Field */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-stone-700 mb-1">
-            Desription <span className="text-red-500">*</span>
+            {t("form.fields.description")} <span className="text-red-500">*</span>
           </label>
           <textarea
             id="description"
@@ -148,7 +150,7 @@ export default function FaqForm({
         {/* Image Field */}
         <div>
           <label htmlFor="image" className="block text-sm font-medium text-stone-700 mb-1">
-            Image <span className="text-stone-400 font-normal">(optional)</span>
+            {t("form.fields.image")} <span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
           </label>
           {imagePreview && (
             <div className="mb-4">
@@ -174,7 +176,7 @@ export default function FaqForm({
                 onClick={handleRemoveImage}
                 className="text-sm text-red-600 hover:text-red-800 font-medium"
               >
-                Remove
+                {t("form.actions.remove")}
               </button>
             )}
           </div>
@@ -183,10 +185,10 @@ export default function FaqForm({
         {/* Tags Field */}
         <fieldset>
           <legend className="block text-sm font-medium text-stone-700 mb-1">
-            Target Tags <span className="text-stone-400 font-normal">(required to publish)</span>
+            {t("form.fields.targetTags")} <span className="text-stone-400 font-normal">{t("form.fields.targetTagsRequired")}</span>
           </legend>
           <div className="flex flex-wrap gap-2">
-            {tags.length === 0 && <p className="text-xs text-stone-400">No tags available yet.</p>}
+            {tags.length === 0 && <p className="text-xs text-stone-400">{t("form.noTagsAvailable")}</p>}
             {tags.map((tag) => {
               const selected = values.tagIds.includes(tag.id);
               return (
@@ -215,11 +217,10 @@ export default function FaqForm({
             onClick={() => handleSave("published")}
             className="rounded-md bg-teal-600 text-white text-sm font-medium px-4 py-2 hover:bg-teal-700 transition-colors"
           >
-            Publish
+            {t("form.actions.publish")}
           </button>
         </div>
       </div>
     </div>
   );
 }
-

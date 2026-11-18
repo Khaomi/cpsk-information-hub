@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquarePlus, Trash2 } from "lucide-react";
@@ -24,6 +25,7 @@ const STATUS_BADGE: Record<FaqStatus, string> = {
 
 export default function FAQsPage() {
   const { user, isStaff } = useRole();
+  const t = useTranslations();
   const [items, setItems] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"ALL" | FaqStatus>("ALL");
@@ -71,8 +73,8 @@ export default function FAQsPage() {
     <FilterableLayout onApplyFilter={() => {}}>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Questions & FAQs</h1>
-          <p className="text-sm text-stone-500">Ask questions anonymously and wait for staff to reply or browse resolved topics.</p>
+          <h1 className="text-2xl font-bold text-stone-900">{t("faqs.heading")}</h1>
+          <p className="text-sm text-stone-500">{t("faqs.subheading")}</p>
         </div>
 
         <Link
@@ -80,31 +82,40 @@ export default function FAQsPage() {
           className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm"
         >
           <MessageSquarePlus className="w-4 h-4" />
-          Ask a Question
+          {t("faqs.askButton")}
         </Link>
       </div>
 
       <div className="flex gap-2 border-b border-stone-200 mb-4 overflow-x-auto pb-1">
-        {(["ALL", "UNANSWERED", "ANSWERED", "RESOLVED"] as const).map((status) => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-t-md transition-colors ${
-              statusFilter === status
-                ? "border-b-2 border-teal-600 text-teal-700 font-semibold"
-                : "text-stone-500 hover:text-stone-800"
-            }`}
-          >
-            {status}
-          </button>
-        ))}
+        {(["ALL", "UNANSWERED", "ANSWERED", "RESOLVED"] as const).map((status) => {
+          const scopeKeyMap: Record<string, string> = {
+            ALL: t("faqs.statuses.ALL"),
+            UNANSWERED: t("faqs.statuses.UNANSWERED"),
+            ANSWERED: t("faqs.statuses.ANSWERED"),
+            RESOLVED: t("faqs.statuses.RESOLVED"),
+          };
+
+          return (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-t-md transition-colors ${
+                statusFilter === status
+                  ? "border-b-2 border-teal-600 text-teal-700 font-semibold"
+                  : "text-stone-500 hover:text-stone-800"
+              }`}
+            >
+              {scopeKeyMap[status]}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
-        <p className="text-sm text-stone-500">Loading questions...</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          No questions found under this filter.
+          {t("faqs.empty")}
         </div>
       ) : (
         <ul className="space-y-4">
@@ -132,9 +143,9 @@ export default function FAQsPage() {
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-stone-400 mt-1">
-                  <span>Asked by <strong className="text-stone-600">{displayName}</strong></span>
-                  <span>•</span>
-                  <span>{formatDisplayDate(f.createdAt)}</span>
+                  <span>
+                    {t("faqs.askedBy", { author: displayName, date: formatDisplayDate(f.createdAt) })}
+                  </span>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mt-2">
@@ -147,7 +158,7 @@ export default function FAQsPage() {
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100 text-xs">
                   <Link href={`/faqs/${f.id}`} className="text-sm text-teal-700 hover:text-teal-900 font-medium">
-                      {isStaff ? "Answer" : "View Discussion"}
+                      {isStaff ? t("faqs.actions.answer") : "View Discussion"}
                     </Link>
                   <div className="flex items-center gap-3">
                     {isStaff && (
@@ -157,7 +168,7 @@ export default function FAQsPage() {
                           f.status === "RESOLVED" ? "text-stone-500 hover:text-stone-700" : "text-emerald-700 hover:text-emerald-900"
                         }`}
                       >
-                        {f.status === "RESOLVED" ? "Reopen Question" : "Mark as Resolved"}
+                        {f.status === "RESOLVED" ? t("faqs.actions.reopenquestion") : t("faqs.actions.markAsResolved")}
                       </button>
                     )}
                     {canDelete && (
@@ -167,7 +178,7 @@ export default function FAQsPage() {
                       className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 font-medium transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      {deletingId === f.id ? "Deleting..." : "Delete"}
+                      {deletingId === f.id ? t("common.loading") : t("faqs.actions.delete")}
                     </button>
                   )}
                   </div>      
