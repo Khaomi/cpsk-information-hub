@@ -55,6 +55,7 @@
   "form": {
     "fields": {
       "title": "Title",
+      "url": "URL",
       "body": "Body",
       "image": "Image",
       "imageOptional": "(optional)",
@@ -74,6 +75,8 @@
     "errors": {
       "titleRequired": "Title is required.",
       "bodyRequired": "Body is required.",
+      "urlRequired": "URL is required.",
+      "urlInvalid": "Enter a valid URL starting with http:// or https://.",
       "publishedDateFuture": "You can only publish for now or a future date and time."
     }
   },
@@ -82,7 +85,14 @@
     "saveFailed": "Something went wrong while saving. Please try again."
   },
   "home": {
-    "empty": "No content matches your filters right now."
+    "empty": "No content matches your filters right now.",
+    "types": {
+      "announcement": "Announcement",
+      "faq": "FAQ",
+      "schedule": "Schedule",
+      "contact": "Contact",
+      "resourceLink": "Resource link"
+    }
   },
   "announcements": {
     "scope": {
@@ -123,6 +133,31 @@
     },
     "edit": {
       "heading": "Edit Announcement",
+      "description": "Update the details below and save your changes."
+    }
+  },
+  "resources": {
+    "title": "Links",
+    "notFound": "Resource link not found.",
+    "scope": {
+      "mine": "My Links"
+    },
+    "empty": {
+      "search": "No resource links match your search.",
+      "mine": "You haven't added any links yet.",
+      "all": "No resource links match your filters right now."
+    },
+    "confirm": {
+      "archive": "Archive this link? It will be hidden from students but kept here for reference.",
+      "delete": "Permanently delete this link? This cannot be undone."
+    },
+    "draftToast": "Saved to Drafts",
+    "new": {
+      "heading": "New Resource Link",
+      "description": "Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected."
+    },
+    "edit": {
+      "heading": "Edit Resource Link",
       "description": "Update the details below and save your changes."
     }
   },

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   ResourceLink,
@@ -23,7 +24,14 @@ const STATUS_BADGE: Record<ResourceLinkStatus, string> = {
   ARCHIVED: "bg-red-100 text-red-700",
 };
 
+const STATUS_LABEL_KEY: Record<ResourceLinkStatus, string> = {
+  ACTIVE: "announcements.status.published",
+  DRAFT: "announcements.status.draft",
+  ARCHIVED: "announcements.status.archived",
+};
+
 export default function ResourceLinksPage() {
+  const t = useTranslations();
   const { user, isStaff } = useRole();
   const searchParams = useSearchParams();
   const query = (searchParams.get("query") ?? "").trim().toLowerCase();
@@ -84,7 +92,7 @@ export default function ResourceLinksPage() {
 
   const handlePublish = async (item: ResourceLink): Promise<void> => {
     if (item.tags.length === 0) {
-      setPublishErrors((prev) => ({ ...prev, [item.id]: "Select at least one tag before publishing." }));
+      setPublishErrors((prev) => ({ ...prev, [item.id]: t("validation.selectTagBeforePublish") }));
       return;
     }
     setPublishErrors((prev) => {
@@ -103,7 +111,7 @@ export default function ResourceLinksPage() {
   return (
     <FilterableLayout onApplyFilter={handleApplyFilter}>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Links</h1>
+        <h1 className="text-2xl font-bold">{t("resources.title")}</h1>
 
         {isStaff && (
           <div className="flex rounded-md border border-stone-300 overflow-hidden text-sm">
@@ -114,7 +122,7 @@ export default function ResourceLinksPage() {
                 scope === "all" ? "bg-teal-600 text-white" : "bg-white text-stone-700 hover:bg-stone-50"
               }`}
             >
-              All
+              {t("announcements.scope.all")}
             </button>
             <button
               type="button"
@@ -123,21 +131,21 @@ export default function ResourceLinksPage() {
                 scope === "mine" ? "bg-teal-600 text-white" : "bg-white text-stone-700 hover:bg-stone-50"
               }`}
             >
-              My Links
+              {t("resources.scope.mine")}
             </button>
           </div>
         )}
       </div>
 
       {loading ? (
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
           {query
-            ? "No resource links match your search."
+            ? t("resources.empty.search")
             : scope === "mine"
-              ? "You haven't added any links yet."
-              : "No resource links match your filters right now."}
+              ? t("resources.empty.mine")
+              : t("resources.empty.all")}
         </div>
       ) : (
         <ul className="space-y-4">
@@ -147,12 +155,12 @@ export default function ResourceLinksPage() {
                 <h2 className="font-semibold text-base leading-snug">{rl.title}</h2>
                 {isStaff && (
                   <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[rl.status]}`}>
-                    {rl.status}
+                    {t(STATUS_LABEL_KEY[rl.status])}
                   </span>
                 )}
               </div>
               <span className="text-xs text-stone-400 mt-1 block">
-                Posted on {formatDisplayDate(rl.startsAt)} by {rl.authorName}
+                {t("announcements.postedOn", { date: formatDisplayDate(rl.startsAt), author: rl.authorName })}
               </span>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {rl.tags.map((tag) => (
@@ -178,7 +186,7 @@ export default function ResourceLinksPage() {
                       onClick={() => handlePublish(rl)}
                       className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
                     >
-                      Publish
+                      {t("announcements.actions.publish")}
                     </button>
                   )}
                   {rl.status === "ARCHIVED" && (
@@ -187,14 +195,14 @@ export default function ResourceLinksPage() {
                       onClick={() => handlePublish(rl)}
                       className="text-sm text-emerald-700 hover:text-emerald-900 font-medium"
                     >
-                      Restore to Published
+                      {t("announcements.actions.restore")}
                     </button>
                   )}
                   <Link
                     href={`/resources/${rl.id}/edit`}
                     className="text-sm text-teal-700 hover:text-teal-900 font-medium"
                   >
-                    Edit
+                    {t("announcements.actions.edit")}
                   </Link>
                   {rl.status !== "ARCHIVED" ? (
                     <button
@@ -202,7 +210,7 @@ export default function ResourceLinksPage() {
                       onClick={() => setConfirming({ id: rl.id, type: "archive" })}
                       className="text-sm text-red-600 hover:text-red-800 font-medium"
                     >
-                      Archive
+                      {t("announcements.actions.archive")}
                     </button>
                   ) : (
                     <button
@@ -210,7 +218,7 @@ export default function ResourceLinksPage() {
                       onClick={() => setConfirming({ id: rl.id, type: "delete" })}
                       className="text-sm text-red-700 hover:text-red-900 font-medium"
                     >
-                      Delete Permanently
+                      {t("announcements.actions.deletePermanently")}
                     </button>
                   )}
                 </div>
@@ -221,7 +229,7 @@ export default function ResourceLinksPage() {
                   <p className="text-xs text-red-600">
                     {publishErrors[rl.id]}{" "}
                     <Link href={`/resources/${rl.id}/edit`} className="underline hover:text-red-800">
-                      Edit to add tags
+                      {t("announcements.actions.editToAddTags")}
                     </Link>
                   </p>
                 </div>
@@ -229,23 +237,21 @@ export default function ResourceLinksPage() {
 
               {confirming?.id === rl.id && confirming.type === "archive" && (
                 <div className="mt-2 pt-2 border-t border-stone-100">
-                  <p className="text-xs text-stone-600 mb-2">
-                    Archive this link? It will be hidden from students but kept here for reference.
-                  </p>
+                  <p className="text-xs text-stone-600 mb-2">{t("resources.confirm.archive")}</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => handleArchive(rl)}
                       className="text-xs font-medium bg-red-600 text-white rounded px-3 py-1.5 hover:bg-red-700 transition-colors"
                     >
-                      Yes, archive
+                      {t("announcements.confirm.yesArchive")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirming(null)}
                       className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>
@@ -253,23 +259,21 @@ export default function ResourceLinksPage() {
 
               {confirming?.id === rl.id && confirming.type === "delete" && (
                 <div className="mt-2 pt-2 border-t border-stone-100 bg-red-50 -mx-4 -mb-4 px-4 pb-4 rounded-b-lg">
-                  <p className="text-xs text-red-700 font-medium mb-2">
-                    Permanently delete this link? This cannot be undone.
-                  </p>
+                  <p className="text-xs text-red-700 font-medium mb-2">{t("resources.confirm.delete")}</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => handleDeletePermanently(rl.id)}
                       className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors"
                     >
-                      Yes, delete permanently
+                      {t("announcements.confirm.yesDelete")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirming(null)}
                       className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-white transition-colors"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>

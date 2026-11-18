@@ -31,7 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { labelKey: "header.nav.resources", href: "/resources" },
 ];
 
-const SEARCHABLE_PATHS = ["/announcements", "/resources"];
+const SEARCHABLE_PATHS = ["/", "/announcements", "/resources", "/contacts"];
 
 export default function Header() {
   const t = useTranslations();
