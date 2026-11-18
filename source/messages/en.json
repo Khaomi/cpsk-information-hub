@@ -220,6 +220,8 @@
     "error": {
       "name": "Name is required.",
       "email": "Email is required." 
+      },
+    },
   "resources": {
     "title": "Links",
     "notFound": "Resource link not found.",
