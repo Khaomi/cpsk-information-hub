@@ -13,7 +13,12 @@ export function GoogleAuthButton({ next }: { next?: string }) {
     setIsLoading(true);
     setError(null);
 
-    const base = process.env.NEXT_PUBLIC_BASE_URL ?? window.location.origin;
+    // Must be the origin the user is actually on: Supabase stores the PKCE
+    // code verifier as a cookie on this origin, so if the callback lands on a
+    // different host (e.g. localhost vs 127.0.0.1, or a Vercel preview URL vs
+    // NEXT_PUBLIC_BASE_URL) the code exchange fails and the user has to sign
+    // in a second time.
+    const base = window.location.origin;
     const redirectURL = next
       ? `${base}/auth/callback?next=${encodeURIComponent(next)}`
       : `${base}/auth/callback`;

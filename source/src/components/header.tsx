@@ -1,9 +1,17 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useCallback, useEffect, useRef, useState, FormEvent } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
-import { LogOut, Search, User, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  SlidersHorizontal,
+  Plus,
+  LogOut,
+  User,
+} from "lucide-react";
 import { useMobileFilters } from "@/src/components/mobile-filters-context";
 import { useRole } from "@/src/components/role-context";
 import { createClient } from "@/src/lib/supabase/client";
@@ -23,27 +31,63 @@ const NAV_ITEMS: NavItem[] = [
   { labelKey: "header.nav.resources", href: "/resources" },
 ];
 
+const SEARCHABLE_PATHS = ["/", "/announcements", "/resources", "/contacts"];
+
 export default function Header() {
   const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
-  const [query, setQuery] = useState<string>("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { open: openMobileFilters } = useMobileFilters();
   const { user, role, isStaff } = useRole();
-  // Tag management is admin-only (SRS US-14 / SRS-11 / AD-5)
   const isAdmin = role === "admin";
+
+  const urlQuery = searchParams.get("query") ?? "";
+
+  useEffect(() => {
+    if (!SEARCHABLE_PATHS.includes(pathname)) return;
+    if (searchInputRef.current) {
+      searchInputRef.current.value = urlQuery;
+    }
+  }, [pathname, urlQuery]);
+
+  const runSearch = useCallback(
+    (term: string): void => {
+      if (!SEARCHABLE_PATHS.includes(pathname)) return;
+
+      const params = new URLSearchParams(searchParams.toString());
+
+      const cleaned = term.trim();
+      if (cleaned) params.set("query", cleaned);
+      else params.delete("query");
+
+      const nextUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+      router.push(nextUrl);
+    },
+    [pathname, searchParams, router]
+  );
 
   const submitSearch = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    if (query.trim()) params.set("q", query.trim());
-    else params.delete("q");
-    router.push(`${pathname}?${params.toString()}`);
+    runSearch(searchInputRef.current?.value ?? "");
   };
 
-  const handleAccountClick = async (): Promise<void> => {
-    if (!user) return;
+  const handleSearchSubmit = (): void => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    runSearch(searchInputRef.current?.value ?? "");
+  };
+
+  const handleQueryChange = (value: string): void => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runSearch(value), 300);
+  };
+
+  const handleSignOut = async (): Promise<void> => {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/auth/login");
@@ -61,8 +105,6 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          {/* Centralized "+ New" — visible from any page, asks which content
-              type to create before routing to that type's form (see /new) */}
           {isStaff && (
             <Link
               href="/new"
@@ -81,12 +123,30 @@ export default function Header() {
             </Link>
           )}
           <LocaleSwitcher />
+          {user ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label={t("header.account.signOut")}
+              title={user.displayName ?? user.email ?? t("header.account.signOut")}
+              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+            >
+              <LogOut className="w-4 h-4 text-stone-600" />
+            </button>
+          ) : (
+            <Link
+              href="/auth/login"
+              aria-label={t("header.account.signIn")}
+              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+            >
+              <User className="w-4 h-4 text-stone-600" />
+            </Link>
+          )}
         </div>
       </div>
 
       <div className="bg-gradient-to-r from-orange-400 to-teal-500">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
-          {/* Real Next.js routing — <Link> navigates, no state switcher needed */}
           <nav className="hidden sm:flex items-center gap-1 text-sm font-medium">
             {NAV_ITEMS.map((item) => (
               <Link
@@ -94,8 +154,8 @@ export default function Header() {
                 href={item.href}
                 className={`px-3 py-2.5 transition-colors ${
                   pathname === item.href
-                  ? "text-white border-b-2 border-white font-semibold"
-                  : "text-white/80 hover:text-white"
+                    ? "text-white border-b-2 border-white font-semibold"
+                    : "text-white/80 hover:text-white"
                 }`}
               >
                 {t(item.labelKey)}
@@ -112,20 +172,27 @@ export default function Header() {
               const current = NAV_ITEMS.find((i) => i.href === pathname);
               return current ? t(current.labelKey) : t("header.mobile.menuFallback");
             })()}
-            <ChevronDown className={`w-4 h-4 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${mobileNavOpen ? "rotate-180" : ""}`}
+            />
           </button>
 
           <form onSubmit={submitSearch} className="flex items-center gap-2 py-2">
             <input
+              ref={searchInputRef}
               type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("header.search.placeholder")}
+              defaultValue={urlQuery}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearchSubmit();
+              }}
+              placeholder="Search..."
               className="w-32 sm:w-48 lg:w-72 rounded-md border-0 bg-white/90 px-3 py-1.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-white/70"
             />
             <button
-              type="submit"
-              aria-label={t("header.search.ariaLabel")}
+              type="button"
+              onClick={handleSearchSubmit}
+              aria-label="Search"
               className="w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             >
               <Search className="w-4 h-4 text-stone-700" />
@@ -148,7 +215,11 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileNavOpen(false)}
-                className={`px-4 py-2.5 ${pathname === item.href ? "text-white bg-white/10 font-semibold" : "text-white/85"}`}
+                className={`px-4 py-2.5 ${
+                  pathname === item.href
+                    ? "text-white bg-white/10 font-semibold"
+                    : "text-white/85"
+                }`}
               >
                 {t(item.labelKey)}
               </Link>

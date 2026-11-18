@@ -35,7 +35,7 @@ const CONTENT_TYPES: ContentTypeOption[] = [
   {
     labelKey: "newContent.types.resourceLink.label",
     descriptionKey: "newContent.types.resourceLink.description",
-    href: null,
+    href: "/resources/new",
     icon: LinkIcon,
   },
 ];

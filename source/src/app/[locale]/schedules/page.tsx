@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRole } from "@/src/components/role-context";
+import FilterableLayout from "@/src/components/filterable-layout";
 import ScheduleCalendar from "@/src/components/schedules/schedule-calendar";
 import ScheduleComingUp, { ComingUpDay } from "@/src/components/schedules/schedule-coming-up";
 import ScheduleDayList from "@/src/components/schedules/schedule-day-list";
@@ -42,6 +43,8 @@ export default function SchedulesPage() {
   const [form, setForm] = useState<FormState>(null);
   const [now, setNow] = useState<CurrentMoment | null>(null);
   const [tags, setTags] = useState<Tag[]>([]);
+  // Tag names chosen in the filter drawer; empty means show every event
+  const [filterTags, setFilterTags] = useState<string[]>([]);
   // Set when the page was opened as /schedules?new=1 (see below)
   const [createRequested, setCreateRequested] = useState(false);
 
@@ -113,12 +116,15 @@ export default function SchedulesPage() {
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, ScheduleEvent[]> = {};
-    for (const event of items) {
+    // Same rule as the home feed (US-12): keep events with at least one selected tag
+    const visible =
+      filterTags.length === 0 ? items : items.filter((e) => e.tags.some((tag) => filterTags.includes(tag.name)));
+    for (const event of visible) {
       (map[event.date] ??= []).push(event);
     }
     for (const list of Object.values(map)) list.sort(compareByStartTime);
     return map;
-  }, [items]);
+  }, [items, filterTags]);
 
   const eventCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -180,7 +186,7 @@ export default function SchedulesPage() {
   const handleEdit = (event: ScheduleEvent): void => setForm({ mode: "edit", event });
 
   return (
-    <div>
+    <FilterableLayout onApplyFilter={setFilterTags}>
       <h1 className="text-2xl font-bold mb-4">Schedules</h1>
 
       {loadError ? (
@@ -240,6 +246,6 @@ export default function SchedulesPage() {
           onCancel={closeForm}
         />
       )}
-    </div>
+    </FilterableLayout>
   );
 }

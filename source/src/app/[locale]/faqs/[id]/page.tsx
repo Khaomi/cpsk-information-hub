@@ -35,7 +35,6 @@ interface FaqDetail {
   created_at: string;
   updated_at: string;
   author_name?: string;
-  author_email?: string;
 }
 
 export default function FaqDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -95,8 +94,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
         creator_id: typedFaq.creator_id ?? null,
         created_at: typedFaq.created_at ?? new Date().toISOString(),
         updated_at: typedFaq.updated_at ?? new Date().toISOString(),
-        author_name: typedFaq.author_name ?? undefined,  
-        author_email: typedFaq.author_email ?? undefined, 
+        author_name: typedFaq.author_name ?? undefined,
       };
 
       setFaq(formattedFaq);

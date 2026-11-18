@@ -7,9 +7,13 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get("next");
   const redirectPath = next?.startsWith("/") ? next : "/";
 
-  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "http";
-  const forwardedHost = request.headers.get("x-forwarded-host") ?? "localhost:3000";
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? `${forwardedProto}://${forwardedHost}`;
+  // Redirect back to the same origin the callback was hit on, so the session
+  // cookies we just set are the ones the browser sends on the next request.
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const siteUrl = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : new URL(request.url).origin;
 
   if (code) {
     const supabase = await createClient();
