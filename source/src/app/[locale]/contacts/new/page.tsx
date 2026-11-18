@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import ContactForm, { ContactFormValues } from "@/src/components/contact-form";
 import Toast from "@/src/components/toast";
 import { insertContact } from "@/src/lib/contacts";
@@ -14,6 +15,7 @@ export default function NewContactPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [showDraftToast, setShowDraftToast] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations();
 
   useEffect(() => {
     if (!loading && !isStaff) {
@@ -49,9 +51,9 @@ export default function NewContactPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-1">New Contact</h1>
+      <h1 className="text-2xl font-bold mb-1">{t("contacts.new.heading")}</h1>
       <p className="text-sm text-stone-500 mb-6">
-        Fill in the contact details below. You can save as a draft or publish immediately.
+        {t("contacts.new.description")}
       </p>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       <ContactForm tags={tags} onSubmit={handleSubmit} onCancel={() => router.push("/contacts")} />

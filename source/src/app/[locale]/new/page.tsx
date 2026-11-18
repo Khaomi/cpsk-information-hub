@@ -20,12 +20,6 @@ const CONTENT_TYPES: ContentTypeOption[] = [
     icon: FileText,
   },
   {
-    labelKey: "newContent.types.faq.label",
-    descriptionKey: "newContent.types.faq.description",
-    href: null,
-    icon: HelpCircle,
-  },
-  {
     labelKey: "newContent.types.schedule.label",
     descriptionKey: "newContent.types.schedule.description",
     // Opens the add-event form on the Schedules page (see its ?new=1 handling)
@@ -33,8 +27,8 @@ const CONTENT_TYPES: ContentTypeOption[] = [
     icon: Calendar,
   },
   {
-    labelKey: "Contact",
-    descriptionKey: "Staff or TA contact details",
+    labelKey: "newContent.types.contact.label",
+    descriptionKey: "newContent.types.contact.description",
     href: "/contacts/new",
     icon: Users,
   },
