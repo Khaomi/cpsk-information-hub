@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.17"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       announcement: {
@@ -90,13 +65,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "announcement_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
           },
         ]
       }
@@ -216,13 +184,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attachment_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
           },
         ]
       }
@@ -423,13 +384,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "faq_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
-          },
-          {
             foreignKeyName: "faq_comments_faq_id_fkey"
             columns: ["faq_id"]
             isOneToOne: false
@@ -591,13 +545,6 @@ export type Database = {
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "resource_link_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
-          },
         ]
       }
       resource_link_tag: {
@@ -689,13 +636,6 @@ export type Database = {
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "schedule_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
-          },
         ]
       }
       schedule_tag: {
@@ -767,13 +707,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tag_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
           },
         ]
       }
@@ -854,20 +787,6 @@ export type Database = {
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "announcement_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
-          },
-          {
-            foreignKeyName: "announcement_creator_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
-          },
         ]
       }
       contact_with_details: {
@@ -917,7 +836,6 @@ export type Database = {
       }
       faq_with_details: {
         Row: {
-          author_email: string | null
           author_name: string | null
           author_role: Database["public"]["Enums"]["app_role"] | null
           created_at: string | null
@@ -944,7 +862,6 @@ export type Database = {
       }
       resource_link_with_details: {
         Row: {
-          author_email: string | null
           author_id: string | null
           author_name: string | null
           created_at: string | null
@@ -959,7 +876,44 @@ export type Database = {
           updated_at: string | null
           url: string | null
         }
+        Insert: {
+          author_id?: string | null
+          author_name?: never
+          created_at?: string | null
+          creator_id?: string | null
+          draft_ends_at?: string | null
+          draft_starts_at?: string | null
+          ends_at?: string | null
+          id?: string | null
+          starts_at?: string | null
+          status?: never
+          title?: string | null
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: never
+          created_at?: string | null
+          creator_id?: string | null
+          draft_ends_at?: string | null
+          draft_starts_at?: string | null
+          ends_at?: string | null
+          id?: string | null
+          starts_at?: string | null
+          status?: never
+          title?: string | null
+          updated_at?: string | null
+          url?: string | null
+        }
         Relationships: [
+          {
+            foreignKeyName: "resource_link_creator_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "resource_link_creator_id_fkey"
             columns: ["creator_id"]
@@ -969,7 +923,7 @@ export type Database = {
           },
           {
             foreignKeyName: "resource_link_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
@@ -978,8 +932,8 @@ export type Database = {
             foreignKeyName: "resource_link_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
-            referencedRelation: "resource_link_with_details"
-            referencedColumns: ["author_id"]
+            referencedRelation: "profile_with_auth_user"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1120,9 +1074,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "lecturer", "ta", "student"],
