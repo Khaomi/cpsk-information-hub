@@ -55,6 +55,7 @@
   "form": {
     "fields": {
       "title": "Title",
+      "url": "URL",
       "body": "Body",
       "image": "Image",
       "imageOptional": "(optional)",
@@ -74,6 +75,8 @@
     "errors": {
       "titleRequired": "Title is required.",
       "bodyRequired": "Body is required.",
+      "urlRequired": "URL is required.",
+      "urlInvalid": "Enter a valid URL starting with http:// or https://.",
       "publishedDateFuture": "You can only publish for now or a future date and time."
     }
   },
@@ -147,6 +150,15 @@
     "confirm": {
       "archive": "Archive this link? It will be hidden from students but kept here for reference.",
       "delete": "Permanently delete this link? This cannot be undone."
+    },
+    "draftToast": "Saved to Drafts",
+    "new": {
+      "heading": "New Resource Link",
+      "description": "Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected."
+    },
+    "edit": {
+      "heading": "Edit Resource Link",
+      "description": "Update the details below and save your changes."
     }
   },
   "tags": {

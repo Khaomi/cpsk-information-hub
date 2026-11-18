@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/src/i18n/navigation";
 import ResourceLinkForm, { ResourceLinkFormValues } from "@/src/components/resource-link-form";
 import Toast from "@/src/components/toast";
 import { insertResourceLink } from "@/src/lib/resourceLinks";
@@ -9,6 +10,7 @@ import { fetchTags, Tag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
 
 export default function NewResourceLinkPage() {
+  const t = useTranslations();
   const router = useRouter();
   const { user, isStaff, loading } = useRole();
   const [tags, setTags] = useState<Tag[]>([]);
@@ -32,7 +34,7 @@ export default function NewResourceLinkPage() {
       await insertResourceLink(values, status, user.id);
     } catch (err) {
       console.error("[insertResourceLink debug]", err);
-      setError("Something went wrong while saving. Please try again.");
+      setError(t("validation.saveFailed"));
       return;
     }
 
@@ -49,14 +51,12 @@ export default function NewResourceLinkPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-1">New Resource Link</h1>
-      <p className="text-sm text-stone-500 mb-6">
-        Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected.
-      </p>
+      <h1 className="text-2xl font-bold mb-1">{t("resources.new.heading")}</h1>
+      <p className="text-sm text-stone-500 mb-6">{t("resources.new.description")}</p>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       <ResourceLinkForm tags={tags} onSubmit={handleSubmit} onCancel={() => router.push("/resources")} />
 
-      {showDraftToast && <Toast message="Saved to Drafts" onDismiss={() => setShowDraftToast(false)} />}
+      {showDraftToast && <Toast message={t("resources.draftToast")} onDismiss={() => setShowDraftToast(false)} />}
     </div>
   );
 }
