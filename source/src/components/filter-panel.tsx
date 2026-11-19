@@ -90,6 +90,20 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
   const allSelected: string[] = Object.values(checked).flat();
   const clearAll = (): void => onChange({});
 
+  // While "Find a tag" has text, only groups with a matching tag are shown and
+  // they open on their own, so a match is visible without guessing its group.
+  // Clearing the text brings back the open/closed state the user had chosen.
+  const normalizedQuery = tagQuery.trim().toLowerCase();
+  const isSearching = normalizedQuery.length > 0;
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      matches: isSearching
+        ? group.options.filter((opt) => opt.toLowerCase().includes(normalizedQuery))
+        : group.options,
+    }))
+    .filter((group) => !isSearching || group.matches.length > 0);
+
   return (
     <div className="rounded-lg bg-rose-50 border border-rose-100 overflow-hidden">
       <div className="bg-rose-800 px-3 py-3 flex justify-center">
@@ -107,47 +121,53 @@ export default function FilterPanel({ checked, onChange, onApply }: FilterPanelP
             className="w-full rounded-md border border-rose-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400"
           />
           {loadError && <p className="mt-2 text-xs text-red-700">{t("filters.loadError")}</p>}
+          {isSearching && visibleGroups.length === 0 && (
+            <p className="mt-2 text-xs text-stone-500">{t("filters.findTag.noResults")}</p>
+          )}
         </div>
-        {groups.map((group) => (
-          <div key={group.label}>
-            <button
-              type="button"
-              onClick={() => toggleGroupOpen(group.label)}
-              className="w-full flex items-center justify-between px-4 py-2.5 text-sm bg-rose-800/90 hover:bg-rose-800 transition-colors"
-            >
-              <span className="text-white flex items-center gap-1.5">
-                {t(group.labelKey)}
-                {(checked[group.label]?.length ?? 0) > 0 && (
-                  <span className="text-[11px] bg-white/25 rounded-full px-1.5">
-                    {checked[group.label].length}
-                  </span>
+        {visibleGroups.map((group) => {
+          const isOpen = isSearching || Boolean(openGroups[group.label]);
+          return (
+            <div key={group.label}>
+              <button
+                type="button"
+                onClick={() => toggleGroupOpen(group.label)}
+                disabled={isSearching}
+                aria-expanded={isOpen}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-sm bg-rose-800/90 hover:bg-rose-800 transition-colors disabled:cursor-default disabled:hover:bg-rose-800/90"
+              >
+                <span className="text-white flex items-center gap-1.5">
+                  {t(group.labelKey)}
+                  {(checked[group.label]?.length ?? 0) > 0 && (
+                    <span className="text-[11px] bg-white/25 rounded-full px-1.5">
+                      {checked[group.label].length}
+                    </span>
+                  )}
+                </span>
+                {isOpen ? (
+                  <ChevronUp className="w-4 h-4 text-white" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-white" />
                 )}
-              </span>
-              {openGroups[group.label] ? (
-                <ChevronUp className="w-4 h-4 text-white" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-white" />
-              )}
-            </button>
-            {openGroups[group.label] && (
-              <div className="px-4 py-3 bg-amber-50 text-sm text-stone-800 space-y-2">
-                {group.options
-                  .filter((opt) => opt.toLowerCase().includes(tagQuery.trim().toLowerCase()))
-                  .map((opt) => (
-                  <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={(checked[group.label] ?? []).includes(opt)}
-                      onChange={() => toggleOption(group.label, opt)}
-                      className="w-4 h-4 rounded border-stone-400 text-rose-700 focus:ring-rose-600"
-                    />
-                    <span>{opt}</span>
-                  </label>
+              </button>
+              {isOpen && (
+                <div className="px-4 py-3 bg-amber-50 text-sm text-stone-800 space-y-2">
+                  {group.matches.map((opt) => (
+                    <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={(checked[group.label] ?? []).includes(opt)}
+                        onChange={() => toggleOption(group.label, opt)}
+                        className="w-4 h-4 rounded border-stone-400 text-rose-700 focus:ring-rose-600"
+                      />
+                      <span>{opt}</span>
+                    </label>
                   ))}
-              </div>
-            )}
-          </div>
-        ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="p-3 flex gap-2 bg-rose-50">

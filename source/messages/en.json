@@ -42,7 +42,8 @@
     },
     "findTag": {
       "placeholder": "Find a tag...",
-      "ariaLabel": "Find a tag"
+      "ariaLabel": "Find a tag",
+      "noResults": "No tags found."
     },
     "loadError": "Unable to load tags. Please try again.",
     "search": "Search",

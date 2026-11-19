@@ -53,10 +53,18 @@ export async function deleteTag(id: string): Promise<void> {
 
 type Unsubscribe = () => void;
 
+// The browser Supabase client is shared, and .channel(name) hands back the
+// existing channel when the name is already in use. Several components can
+// listen to tags at once (e.g. the filter sidebar and the phone drawer), so
+// each subscription needs its own channel name, or the second one fails with
+// "cannot add postgres_changes callbacks ... after subscribe()".
+let tagChannelCount = 0;
+
 export function subscribeToTags(onChange: () => void): Unsubscribe {
   const supabase = createClient();
+  tagChannelCount += 1;
   const channel = supabase
-    .channel("tags-list-changes")
+    .channel(`tags-list-changes-${tagChannelCount}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "tag" }, onChange)
     .subscribe();
 
