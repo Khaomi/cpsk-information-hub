@@ -153,7 +153,7 @@
     },
     "empty": "No questions found under this filter.",
     "notFound": "Question not found.",
-    "askedBy": "Asked by {author} • {date}",
+    "askedBy": "Asked by {author}",
     "repliesCount": "Replies ({count})",
     "noReplies": "No replies yet.",
     "replyPlaceholder": "Write an official staff response or reply...",
@@ -164,6 +164,10 @@
       "markAsResolved": "Mark as Resolved",
       "delete": "Delete",
       "reopenquestion": "Reopen Question"
+    },
+    "editPage": {
+      "heading": "Edit Question",
+      "description": "Update the question details below."
     },
     "new": {
       "heading": "Ask a Question",
@@ -181,7 +185,7 @@
       "all": "All",
       "mine": "My Contacts"
     },
-    "notfound":"Contact not found.",
+    "notfound": "Contact not found.",
     "emptystaff": "You haven't created any contacts yet.",
     "empty": "No contacts match your filters right now.",
     "emptyta": "No TAs found.",
@@ -219,9 +223,9 @@
     },
     "error": {
       "name": "Name is required.",
-      "email": "Email is required." 
-      }
-    },
+      "email": "Email is required."
+    }
+  },
   "resources": {
     "title": "Links",
     "notFound": "Resource link not found.",
@@ -259,7 +263,8 @@
     "fields": {
       "name": "Name",
       "namePlaceholder": "e.g. Year 2",
-      "category": "Category"
+      "category": "Category",
+      "url": "URL"
     },
     "list": {
       "heading": "Existing tags",
@@ -279,7 +284,9 @@
       "nameDuplicate": "A tag with this name already exists.",
       "create": "Unable to create this tag. Please try again.",
       "update": "Unable to update this tag. You may not have permission to edit this tag.",
-      "delete": "Unable to delete this tag. You may not have permission to delete this tag."
+      "delete": "Unable to delete this tag. You may not have permission to delete this tag.",
+      "urlRequired": "Please provide the URL.",
+      "urlInvalid": "Please provide a valid URL, beginning with http:// or https://."
     }
   },
   "login": {

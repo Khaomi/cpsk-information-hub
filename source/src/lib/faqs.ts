@@ -20,6 +20,7 @@ export type Faq = {
 
 type FaqViewRow = Tables<"faq_with_details">;
 type SupabaseClient = ReturnType<typeof createClient>;
+const FAQ_IMAGES_BUCKET = "faq-images";
 
 export function formatDisplayDate(dateString: string | null): string {
   if (!dateString) return "";
@@ -128,7 +129,7 @@ export async function setFaqResolved(id: string, isResolved: boolean): Promise<v
   const supabase = createClient();
   const { error } = await supabase
     .from("faqs")
-    .update({ status: isResolved ? "RESOLVED" : "UNANSWERED" })
+    .update({ status: isResolved ? "RESOLVED" : "ANSWERED" })
     .eq("id", id);
   if (error) throw error;
 }
@@ -192,6 +193,14 @@ type FaqAttachmentInfo = {
   filePaths: string[];
 };
 
+function extractStoragePath(url: string): string | null {
+  const marker = `/${FAQ_IMAGES_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  const rawPath = url.slice(idx + marker.length).split("?")[0];
+  return rawPath ? decodeURIComponent(rawPath) : null;
+}
+
 async function getFaqAttachments(supabase: SupabaseClient, faqId: string): Promise<FaqAttachmentInfo> {
   type FaqAttachmentLinkRow = {
     attachment_id: string;
@@ -209,10 +218,7 @@ async function getFaqAttachments(supabase: SupabaseClient, faqId: string): Promi
   const filePaths = typedLinks
     .map((item) => {
       const attObj = Array.isArray(item.attachment) ? item.attachment[0] : item.attachment;
-      const url = attObj?.url;
-      if (!url) return null;
-      const parts = url.split("/attachments/");
-      return parts.length > 1 ? parts[1] : null;
+      return attObj?.url ? extractStoragePath(attObj.url) : null;
     })
     .filter((path): path is string => Boolean(path));
 
@@ -225,7 +231,7 @@ async function getFaqAttachments(supabase: SupabaseClient, faqId: string): Promi
 async function clearFaqAttachments(supabase: SupabaseClient, info: FaqAttachmentInfo): Promise<void> {
   try {
     if (info.filePaths.length > 0) {
-      const { error } = await supabase.storage.from("attachments").remove(info.filePaths);
+      const { error } = await supabase.storage.from(FAQ_IMAGES_BUCKET).remove(info.filePaths);
       if (error) throw error;
     }
     if (info.attachmentIds.length > 0) {
@@ -262,4 +268,75 @@ export async function deleteFaq(id: string): Promise<void> {
 
   // 3. Only now remove the files and attachment rows
   await clearFaqAttachments(supabase, attachments);
+}
+
+async function uploadFaqImage(supabase: SupabaseClient, file: File, creatorId: string): Promise<string> {
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : undefined;
+  const path = `${creatorId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
+
+  const { error: uploadError } = await supabase.storage.from(FAQ_IMAGES_BUCKET).upload(path, file);
+  if (uploadError) throw uploadError;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(FAQ_IMAGES_BUCKET).getPublicUrl(path);
+
+  const { data, error } = await supabase
+    .from("attachment")
+    .insert({ creator_id: creatorId, filename: file.name, filesize: file.size, url: publicUrl })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  return (data as { id: string }).id;
+}
+
+export type UpdateFaqInput = {
+  question: string;
+  description: string;
+  tagIds: string[];
+  imageFile?: File | null;
+  removeImage?: boolean;
+};
+
+export async function updateFaq(id: string, input: UpdateFaqInput, editorId: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error: updateError } = await supabase
+    .from("faqs")
+    .update({
+      question: input.question,
+      description: input.description || undefined,
+    })
+    .eq("id", id);
+  if (updateError) throw updateError;
+
+  // Sync tags
+  const { error: deleteTagsError } = await supabase.from("faq_tag").delete().eq("faq_id", id);
+  if (deleteTagsError) throw deleteTagsError;
+
+  if (input.tagIds.length > 0) {
+    const { error: insertTagsError } = await supabase
+      .from("faq_tag")
+      .insert(input.tagIds.map((tagId) => ({ faq_id: id, tag_id: tagId })));
+    if (insertTagsError) throw insertTagsError;
+  }
+
+  // Handle image removal or replacement
+  if (input.removeImage || input.imageFile) {
+    const existing = await getFaqAttachments(supabase, id);
+    if (existing.attachmentIds.length > 0) {
+      const { error: unlinkError } = await supabase.from("faq_attachment").delete().eq("faq_id", id);
+      if (unlinkError) throw unlinkError;
+      await clearFaqAttachments(supabase, existing);
+    }
+  }
+
+  if (input.imageFile) {
+    const attachmentId = await uploadFaqImage(supabase, input.imageFile, editorId);
+    const { error: linkError } = await supabase
+      .from("faq_attachment")
+      .insert({ faq_id: id, attachment_id: attachmentId });
+    if (linkError) throw linkError;
+  }
 }
