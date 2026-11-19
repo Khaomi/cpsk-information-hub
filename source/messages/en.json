@@ -152,6 +152,7 @@
       "RESOLVED": "RESOLVED"
     },
     "empty": "No questions found under this filter.",
+    "emptySearch": "No questions match your search.",
     "notFound": "Question not found.",
     "askedBy": "Asked by {author}",
     "repliesCount": "Replies ({count})",

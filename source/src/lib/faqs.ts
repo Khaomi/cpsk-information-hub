@@ -188,17 +188,29 @@ export function subscribeToFaqs(onChange: () => void) {
   };
 }
 
-type FaqAttachmentInfo = {
-  attachmentIds: string[];
-  filePaths: string[];
+// New FAQ images go to faq-images. Questions asked before that change stored
+// their image in the shared "attachments" bucket, so cleanup handles both.
+const FAQ_IMAGE_BUCKETS = [FAQ_IMAGES_BUCKET, "attachments"] as const;
+
+type StoredFile = {
+  bucket: string;
+  path: string;
 };
 
-function extractStoragePath(url: string): string | null {
-  const marker = `/${FAQ_IMAGES_BUCKET}/`;
-  const idx = url.indexOf(marker);
-  if (idx === -1) return null;
-  const rawPath = url.slice(idx + marker.length).split("?")[0];
-  return rawPath ? decodeURIComponent(rawPath) : null;
+type FaqAttachmentInfo = {
+  attachmentIds: string[];
+  files: StoredFile[];
+};
+
+function extractStoredFile(url: string): StoredFile | null {
+  for (const bucket of FAQ_IMAGE_BUCKETS) {
+    const marker = `/${bucket}/`;
+    const idx = url.indexOf(marker);
+    if (idx === -1) continue;
+    const rawPath = url.slice(idx + marker.length).split("?")[0];
+    return rawPath ? { bucket, path: decodeURIComponent(rawPath) } : null;
+  }
+  return null;
 }
 
 async function getFaqAttachments(supabase: SupabaseClient, faqId: string): Promise<FaqAttachmentInfo> {
@@ -215,23 +227,32 @@ async function getFaqAttachments(supabase: SupabaseClient, faqId: string): Promi
 
   const typedLinks = (links as FaqAttachmentLinkRow[] | null) ?? [];
 
-  const filePaths = typedLinks
+  const files = typedLinks
     .map((item) => {
       const attObj = Array.isArray(item.attachment) ? item.attachment[0] : item.attachment;
-      return attObj?.url ? extractStoragePath(attObj.url) : null;
+      return attObj?.url ? extractStoredFile(attObj.url) : null;
     })
-    .filter((path): path is string => Boolean(path));
+    .filter((file): file is StoredFile => file !== null);
 
   return {
     attachmentIds: typedLinks.map((item) => item.attachment_id),
-    filePaths,
+    files,
   };
 }
 
+/**
+ * Best-effort removal of attachment rows and their files. Callers run it only
+ * after the FAQ change it belongs to has succeeded, so a failure here at worst
+ * leaves an unused file in storage.
+ */
 async function clearFaqAttachments(supabase: SupabaseClient, info: FaqAttachmentInfo): Promise<void> {
   try {
-    if (info.filePaths.length > 0) {
-      const { error } = await supabase.storage.from(FAQ_IMAGES_BUCKET).remove(info.filePaths);
+    const pathsByBucket = new Map<string, string[]>();
+    for (const file of info.files) {
+      pathsByBucket.set(file.bucket, [...(pathsByBucket.get(file.bucket) ?? []), file.path]);
+    }
+    for (const [bucket, paths] of pathsByBucket) {
+      const { error } = await supabase.storage.from(bucket).remove(paths);
       if (error) throw error;
     }
     if (info.attachmentIds.length > 0) {
@@ -239,8 +260,7 @@ async function clearFaqAttachments(supabase: SupabaseClient, info: FaqAttachment
       if (error) throw error;
     }
   } catch (err) {
-    // The FAQ is already gone; at worst an unused file is left in storage.
-    console.error("FAQ deleted, but cleaning up its attachments failed:", err);
+    console.error("Cleaning up FAQ attachments failed (an unused file may be left in storage):", err);
   }
 }
 
@@ -270,7 +290,11 @@ export async function deleteFaq(id: string): Promise<void> {
   await clearFaqAttachments(supabase, attachments);
 }
 
-async function uploadFaqImage(supabase: SupabaseClient, file: File, creatorId: string): Promise<string> {
+async function uploadFaqImage(
+  supabase: SupabaseClient,
+  file: File,
+  creatorId: string,
+): Promise<{ attachmentId: string; stored: StoredFile }> {
   const ext = file.name.includes(".") ? file.name.split(".").pop() : undefined;
   const path = `${creatorId}/${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
 
@@ -286,9 +310,37 @@ async function uploadFaqImage(supabase: SupabaseClient, file: File, creatorId: s
     .insert({ creator_id: creatorId, filename: file.name, filesize: file.size, url: publicUrl })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    // Don't leave the uploaded file behind without a row pointing to it
+    await supabase.storage.from(FAQ_IMAGES_BUCKET).remove([path]);
+    throw error;
+  }
 
-  return (data as { id: string }).id;
+  return {
+    attachmentId: (data as { id: string }).id,
+    stored: { bucket: FAQ_IMAGES_BUCKET, path },
+  };
+}
+
+/**
+ * Upload an image and attach it to an FAQ. Used by both the Ask and Edit
+ * pages so every FAQ image ends up in the same bucket.
+ */
+export async function addFaqImage(
+  supabase: SupabaseClient,
+  faqId: string,
+  file: File,
+  creatorId: string,
+): Promise<void> {
+  const uploaded = await uploadFaqImage(supabase, file, creatorId);
+
+  const { error } = await supabase
+    .from("faq_attachment")
+    .insert({ faq_id: faqId, attachment_id: uploaded.attachmentId });
+  if (error) {
+    await clearFaqAttachments(supabase, { attachmentIds: [uploaded.attachmentId], files: [uploaded.stored] });
+    throw error;
+  }
 }
 
 export type UpdateFaqInput = {
@@ -311,32 +363,51 @@ export async function updateFaq(id: string, input: UpdateFaqInput, editorId: str
     .eq("id", id);
   if (updateError) throw updateError;
 
-  // Sync tags
-  const { error: deleteTagsError } = await supabase.from("faq_tag").delete().eq("faq_id", id);
-  if (deleteTagsError) throw deleteTagsError;
+  // Sync tags: add the new ones first, then drop the removed ones, so a failed
+  // insert never leaves the question with no tags.
+  const { data: currentTagRows, error: currentTagsError } = await supabase
+    .from("faq_tag")
+    .select("tag_id")
+    .eq("faq_id", id);
+  if (currentTagsError) throw currentTagsError;
 
-  if (input.tagIds.length > 0) {
+  const currentTagIds = (currentTagRows ?? []).map((row) => row.tag_id);
+  const tagIdsToAdd = input.tagIds.filter((tagId) => !currentTagIds.includes(tagId));
+  const tagIdsToRemove = currentTagIds.filter((tagId) => !input.tagIds.includes(tagId));
+
+  if (tagIdsToAdd.length > 0) {
     const { error: insertTagsError } = await supabase
       .from("faq_tag")
-      .insert(input.tagIds.map((tagId) => ({ faq_id: id, tag_id: tagId })));
+      .insert(tagIdsToAdd.map((tagId) => ({ faq_id: id, tag_id: tagId })));
     if (insertTagsError) throw insertTagsError;
   }
 
-  // Handle image removal or replacement
+  if (tagIdsToRemove.length > 0) {
+    const { error: deleteTagsError } = await supabase
+      .from("faq_tag")
+      .delete()
+      .eq("faq_id", id)
+      .in("tag_id", tagIdsToRemove);
+    if (deleteTagsError) throw deleteTagsError;
+  }
+
+  // Image removal or replacement. The new image is added before the old one
+  // is removed, so a failed upload keeps the question's current image.
   if (input.removeImage || input.imageFile) {
     const existing = await getFaqAttachments(supabase, id);
+
+    if (input.imageFile) {
+      await addFaqImage(supabase, id, input.imageFile, editorId);
+    }
+
     if (existing.attachmentIds.length > 0) {
-      const { error: unlinkError } = await supabase.from("faq_attachment").delete().eq("faq_id", id);
+      const { error: unlinkError } = await supabase
+        .from("faq_attachment")
+        .delete()
+        .eq("faq_id", id)
+        .in("attachment_id", existing.attachmentIds);
       if (unlinkError) throw unlinkError;
       await clearFaqAttachments(supabase, existing);
     }
-  }
-
-  if (input.imageFile) {
-    const attachmentId = await uploadFaqImage(supabase, input.imageFile, editorId);
-    const { error: linkError } = await supabase
-      .from("faq_attachment")
-      .insert({ faq_id: id, attachment_id: attachmentId });
-    if (linkError) throw linkError;
   }
 }

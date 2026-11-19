@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/src/lib/supabase/client";
+import { addFaqImage } from "@/src/lib/faqs";
 import { fetchTags, Tag } from "@/src/lib/tags";
 import FaqForm, { FaqFormValues } from "@/src/components/faq-form";
 
@@ -62,43 +63,11 @@ export default function AskFaqPage() {
         if (tagError) throw tagError;
       }
 
-      // 3. Handle File/Image Attachment upload if provided
+      // 3. Attach the image, if any. Same helper as the Edit page, so the
+      //    file lands in the bucket that edit and delete clean up from.
       if (values.imageFile) {
-        const file = values.imageFile;
-        const fileExt = file.name.split(".").pop();
-        const filePath = `faq-attachments/${Date.now()}_${Math.random()
-          .toString(36)
-          .substring(2)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("attachments")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from("attachments")
-          .getPublicUrl(filePath);
-
-        const { data: attachmentData, error: attError } = await supabase
-          .from("attachment")
-          .insert({
-            filename: file.name,
-            filesize: file.size,
-            url: publicUrlData.publicUrl,
-            creator_id: user?.id ?? null,
-          })
-          .select("id")
-          .single();
-
-        if (attError) throw attError;
-
-        if (attachmentData) {
-          const { error: linkError } = await supabase
-            .from("faq_attachment")
-            .insert({ faq_id: faqId, attachment_id: attachmentData.id });
-          if (linkError) throw linkError;
-        }
+        if (!user) throw new Error("You must be signed in to attach an image.");
+        await addFaqImage(supabase, faqId, values.imageFile, user.id);
       }
 
       router.push(`/faqs/${faqId}`);
