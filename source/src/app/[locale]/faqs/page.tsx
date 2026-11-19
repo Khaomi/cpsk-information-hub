@@ -28,12 +28,13 @@ export default function FAQsPage() {
   const { user, isStaff } = useRole();
   const searchParams = useSearchParams();
   const query = (searchParams.get("query") ?? "").trim().toLowerCase();
-  
+
   const t = useTranslations();
   const [items, setItems] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"ALL" | FaqStatus>("ALL");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<{ id: string; type: "delete" } | null>(null);
 
   const loadItems = (): void => {
     fetchFaqs()
@@ -50,7 +51,6 @@ export default function FAQsPage() {
   const visibleItems = items.filter((f) => {
     if (statusFilter !== "ALL" && f.status !== statusFilter) return false;
 
-    // Keyword search looks at the question (title) and description only.
     if (query) {
       const matchesQuery =
         f.question.toLowerCase().includes(query) ||
@@ -72,13 +72,12 @@ export default function FAQsPage() {
     }
   };
 
-  const handleDelete = async (faq: Faq) => {
-    if (!window.confirm("Are you sure you want to delete this question?")) return;
-
+  const handleDelete = async (id: string) => {
     try {
-      setDeletingId(faq.id);
-      await deleteFaq(faq.id);
-      setItems((prev) => prev.filter((item) => item.id !== faq.id));
+      setDeletingId(id);
+      await deleteFaq(id);
+      setConfirming(null);
+      setItems((prev) => prev.filter((item) => item.id !== id));
     } catch (err: unknown) {
       console.error("Failed to delete FAQ:", err);
       const errMessage = err instanceof Error ? err.message : "Failed to delete question.";
@@ -134,7 +133,7 @@ export default function FAQsPage() {
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-         {query ? "No questions match your search." : "No questions found under this filter."}
+          {query ? "No questions match your search." : "No questions found under this filter."}
           {t("faqs.empty")}
         </div>
       ) : (
@@ -150,14 +149,19 @@ export default function FAQsPage() {
             const canDelete = isStaff || (user && user.id === f.creatorId);
 
             return (
-              <li key={f.id} className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm hover:border-stone-300 transition-all">
+              <li
+                key={f.id}
+                className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm hover:border-stone-300 transition-all"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <Link href={`/faqs/${f.id}`} className="group flex-1">
-                    <h2 className="font-semibold text-base text-stone-900 group-hover:text-teal-700 transition-colors">
+                    <h2 className="font-semibold text-base text-stone-900">
                       {f.question}
                     </h2>
                   </Link>
-                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[f.status]}`}>
+                  <span
+                    className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[f.status]}`}
+                  >
                     {f.status}
                   </span>
                 </div>
@@ -170,7 +174,10 @@ export default function FAQsPage() {
 
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {f.tags?.map((tag) => (
-                    <span key={tag.id} className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
+                    <span
+                      key={tag.id}
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}
+                    >
                       {tag.name}
                     </span>
                   ))}
@@ -178,31 +185,63 @@ export default function FAQsPage() {
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100 text-xs">
                   <Link href={`/faqs/${f.id}`} className="text-sm text-teal-700 hover:text-teal-900 font-medium">
-                      {isStaff ? t("faqs.actions.answer") : "View Discussion"}
-                    </Link>
+                    {isStaff ? t("faqs.actions.answer") : "View Discussion"}
+                  </Link>
                   <div className="flex items-center gap-3">
                     {isStaff && (
                       <button
+                        type="button"
                         onClick={() => handleToggleResolve(f)}
                         className={`text-sm font-medium ${
-                          f.status === "RESOLVED" ? "text-stone-500 hover:text-stone-700" : "text-emerald-700 hover:text-emerald-900"
+                          f.status === "RESOLVED"
+                            ? "text-stone-500 hover:text-stone-700"
+                            : "text-emerald-700 hover:text-emerald-900"
                         }`}
                       >
-                        {f.status === "RESOLVED" ? t("faqs.actions.reopenquestion") : t("faqs.actions.markAsResolved")}
+                        {f.status === "RESOLVED"
+                          ? t("faqs.actions.reopenquestion")
+                          : t("faqs.actions.markAsResolved")}
                       </button>
                     )}
                     {canDelete && (
-                    <button
-                      onClick={() => handleDelete(f)}
-                      disabled={deletingId === f.id}
-                      className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 font-medium transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      {deletingId === f.id ? t("common.loading") : t("faqs.actions.delete")}
-                    </button>
-                  )}
-                  </div>      
+                      <button
+                        type="button"
+                        onClick={() => setConfirming({ id: f.id, type: "delete" })}
+                        disabled={deletingId === f.id}
+                        className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 font-medium transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {deletingId === f.id ? t("common.loading") : t("faqs.actions.delete")}
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {confirming?.id === f.id && confirming.type === "delete" && (
+                  <div className="mt-3 pt-3 border-t border-stone-100 bg-red-50 -mx-4 -mb-4 px-4 pb-4 rounded-b-lg flex flex-col items-end">
+                    <p className="text-xs text-red-700 font-medium mb-2 text-right">
+                      {t("announcements.confirm.deleteList")}
+                    </p>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(f.id)}
+                        disabled={deletingId === f.id}
+                        className="text-xs font-medium bg-red-700 text-white rounded px-3 py-1.5 hover:bg-red-800 transition-colors disabled:opacity-50"
+                      >
+                        {deletingId === f.id ? t("common.loading") : t("announcements.confirm.yesDelete")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(null)}
+                        disabled={deletingId === f.id}
+                        className="text-xs font-medium border border-stone-300 bg-white rounded px-3 py-1.5 hover:bg-stone-50 transition-colors disabled:opacity-50"
+                      >
+                        {t("common.cancel")}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             );
           })}

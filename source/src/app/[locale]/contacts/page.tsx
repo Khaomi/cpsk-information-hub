@@ -108,7 +108,7 @@ export default function ContactsPage() {
         {/* Contact Info */}
         <div className="flex-1">
           <div className="flex items-start justify-between gap-2">
-            <Link href={`/contacts/${c.id}`} className="font-bold text-xl hover:underline">
+            <Link href={`/contacts/${c.id}`} className="font-bold text-xl">
               {c.name}
             </Link>
             {isStaff && (
@@ -239,10 +239,10 @@ export default function ContactsPage() {
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
           {query
-            ? "No contacts match your search."
+            ? t("contacts.notfound")
             : scope === "mine"
-              ? "You haven't created any contacts yet."
-              : "No contacts match your filters right now."}
+              ? t("contacts.emptystaff")
+              : t("contacts.empty")}
         </div>
       ) : (
         <div className="space-y-8">

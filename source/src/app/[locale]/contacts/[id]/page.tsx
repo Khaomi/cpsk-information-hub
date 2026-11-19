@@ -8,13 +8,10 @@ import { ArrowLeft } from "lucide-react";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Contact,
-  deleteContact,
   fetchContactById,
-  setContactActive,
   subscribeToContact,
 } from "@/src/lib/contacts";
 import { colorForTag } from "@/src/lib/tags";
-import { useRole } from "@/src/components/role-context";
 
 type Props = {
   params: Promise<{ id: string }>;
