@@ -133,8 +133,7 @@ export default function FAQsPage() {
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
-          {query ? "No questions match your search." : "No questions found under this filter."}
-          {t("faqs.empty")}
+          {query ? t("faqs.emptySearch") : t("faqs.empty")}
         </div>
       ) : (
         <ul className="space-y-4">
