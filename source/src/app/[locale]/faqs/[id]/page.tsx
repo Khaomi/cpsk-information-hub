@@ -46,7 +46,10 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
   const [faq, setFaq] = useState<FaqDetail | null>(null);
   const [comments, setComments] = useState<FaqComment[]>([]);
   const [loading, setLoading] = useState(true);
+  // error: the page itself failed to load. actionError: a save/reply/delete
+  // failed; shown as a banner so the question and replies stay on screen.
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Edit states for FAQ
   const [isEditing, setIsEditing] = useState(false);
@@ -121,16 +124,22 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
     if (!faq) return;
 
     setSaving(true);
+    setActionError(null);
     const supabase = createClient();
+
+    const trimmedQuestion = editQuestion.trim();
+    const trimmedDescription = editDescription.trim();
 
     const updatePayload: {
       question: string;
-      description?: string;
+      description: string;
       status?: FaqDetail["status"];
       answered_by_id?: string | null;
     } = {
-      question: editQuestion.trim(),
-      ...(editDescription.trim() ? { description: editDescription.trim() } : {}),
+      question: trimmedQuestion,
+      // Always sent, so clearing the box really clears the description.
+      // "" rather than null: the live column is NOT NULL (see database.types.ts).
+      description: trimmedDescription,
     };
 
     if (isStaff) {
@@ -144,14 +153,14 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       .eq("id", faq.id);
 
     if (updateError) {
-      setError("Failed to update question: " + updateError.message);
+      setActionError("Failed to update question: " + updateError.message);
     } else {
       setFaq((prev) =>
         prev
           ? {
               ...prev,
-              question: editQuestion,
-              description: editDescription || null,
+              question: trimmedQuestion,
+              description: trimmedDescription || null,
               status: isStaff ? editStatus : prev.status,
             }
           : null
@@ -164,31 +173,40 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isStaff) {
-      setError("Unauthorized: Only staff can reply.");
+      setActionError("Unauthorized: Only staff can reply.");
       return;
     }
     if (!newComment.trim() || !user || !faq) return;
 
     setSubmittingComment(true);
+    setActionError(null);
 
     try {
       const createdComment = await insertFaqComment(faq.id, newComment.trim(), Boolean(isStaff));
       setComments((prev) => [...prev, createdComment]);
       setNewComment("");
-
-      if (faq.status === "UNANSWERED") {
-        const newStatus = "ANSWERED";
-        const supabase = createClient();
-        await supabase
-          .from("faqs")
-          .update({ status: newStatus })
-          .eq("id", faq.id);
-
-        setFaq((prev) => (prev ? { ...prev, status: newStatus } : null));
-      }
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : "Failed to submit comment.";
-      setError("Failed to submit comment: " + errMessage);
+      setActionError("Failed to submit comment: " + errMessage);
+      setSubmittingComment(false);
+      return;
+    }
+
+    // Automatically change status from UNANSWERED to ANSWERED if not resolved.
+    // The reply is already saved, so a failure here only reports the status.
+    if (faq.status === "UNANSWERED") {
+      const newStatus = "ANSWERED";
+      const supabase = createClient();
+      const { error: statusError } = await supabase
+        .from("faqs")
+        .update({ status: newStatus })
+        .eq("id", faq.id);
+
+      if (statusError) {
+        setActionError("Reply posted, but the status could not be changed to ANSWERED: " + statusError.message);
+      } else {
+        setFaq((prev) => (prev ? { ...prev, status: newStatus } : null));
+      }
     }
 
     setSubmittingComment(false);
@@ -197,6 +215,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
   const handleUpdateComment = async (commentId: string) => {
     if (!editCommentContent.trim()) return;
 
+    setActionError(null);
     try {
       await updateFaqComment(commentId, editCommentContent.trim());
       setComments((prev) =>
@@ -206,11 +225,12 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       setEditCommentContent("");
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : "Failed to update comment.";
-      setError("Failed to update comment: " + errMessage);
+      setActionError("Failed to update comment: " + errMessage);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
+    setActionError(null);
     try {
       await deleteFaqComment(commentId);
 
@@ -233,7 +253,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       }
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : "Failed to delete comment.";
-      setError("Failed to delete comment: " + errMessage);
+      setActionError("Failed to delete comment: " + errMessage);
     }
   };
 
@@ -284,7 +304,20 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
         )}
       </div>
 
-      {/* Main Card */}
+      {actionError && (
+        <div className="flex items-start justify-between gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <span>{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-xs font-medium text-red-700 hover:text-red-900 shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+     
       <article className="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden">
         <div className="border-b border-stone-100 bg-stone-50/60 p-6">
           <div className="flex items-start justify-between gap-4">

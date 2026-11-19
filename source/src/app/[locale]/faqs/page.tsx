@@ -62,8 +62,14 @@ export default function FAQsPage() {
   });
 
   const handleToggleResolve = async (faq: Faq) => {
-    await setFaqResolved(faq.id, faq.status !== "RESOLVED");
-    loadItems();
+    try {
+      await setFaqResolved(faq.id, faq.status !== "RESOLVED");
+      loadItems();
+    } catch (err: unknown) {
+      console.error("Failed to update FAQ status:", err);
+      const errMessage = err instanceof Error ? err.message : "Failed to update question status.";
+      alert(errMessage);
+    }
   };
 
   const handleDelete = async (faq: Faq) => {
