@@ -92,9 +92,10 @@ export default function AskFaqPage() {
         if (attError) throw attError;
 
         if (attachmentData) {
-          await supabase
+          const { error: linkError } = await supabase
             .from("faq_attachment")
             .insert({ faq_id: faqId, attachment_id: attachmentData.id });
+          if (linkError) throw linkError;
         }
       }
 
