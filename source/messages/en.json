@@ -55,7 +55,10 @@
   "form": {
     "fields": {
       "title": "Title",
+      "question": "Question",
+      "url": "URL",
       "body": "Body",
+      "description": "Description",
       "image": "Image",
       "imageOptional": "(optional)",
       "publishedDate": "Published Date & Time",
@@ -74,6 +77,8 @@
     "errors": {
       "titleRequired": "Title is required.",
       "bodyRequired": "Body is required.",
+      "urlRequired": "URL is required.",
+      "urlInvalid": "Enter a valid URL starting with http:// or https://.",
       "publishedDateFuture": "You can only publish for now or a future date and time."
     }
   },
@@ -82,7 +87,14 @@
     "saveFailed": "Something went wrong while saving. Please try again."
   },
   "home": {
-    "empty": "No content matches your filters right now."
+    "empty": "No content matches your filters right now.",
+    "types": {
+      "announcement": "Announcement",
+      "faq": "FAQ",
+      "schedule": "Schedule",
+      "contact": "Contact",
+      "resourceLink": "Resource link"
+    }
   },
   "announcements": {
     "scope": {
@@ -123,6 +135,115 @@
     },
     "edit": {
       "heading": "Edit Announcement",
+      "description": "Update the details below and save your changes."
+    }
+  },
+  "faqs": {
+    "heading": "FAQs",
+    "subheading": "Ask questions anonymously and wait for staff to reply or browse resolved topics.",
+    "askButton": "Ask a Question",
+    "statusLabel": "Status",
+    "anonymous": "Anonymous",
+    "student": "Student",
+    "statuses": {
+      "ALL": "ALL",
+      "UNANSWERED": "UNANSWERED",
+      "ANSWERED": "ANSWERED",
+      "RESOLVED": "RESOLVED"
+    },
+    "empty": "No questions found under this filter.",
+    "notFound": "Question not found.",
+    "askedBy": "Asked by {author} • {date}",
+    "repliesCount": "Replies ({count})",
+    "noReplies": "No replies yet.",
+    "replyPlaceholder": "Write an official staff response or reply...",
+    "postReply": "Post Reply",
+    "staffOnlyReply": "Only staff members can post replies to questions.",
+    "actions": {
+      "answer": "Answer",
+      "markAsResolved": "Mark as Resolved",
+      "delete": "Delete",
+      "reopenquestion": "Reopen Question"
+    },
+    "new": {
+      "heading": "Ask a Question",
+      "description": "Post your question or inquiry here. Submissions are anonymous to students by default."
+    },
+    "errors": {
+      "load": "Failed to load question details or question does not exist."
+    }
+  },
+  "contacts": {
+    "heading": "Contacts",
+    "lecturers": "Lecturers",
+    "tas": "TAs",
+    "scope": {
+      "all": "All",
+      "mine": "My Contacts"
+    },
+    "notfound":"Contact not found.",
+    "emptystaff": "You haven't created any contacts yet.",
+    "empty": "No contacts match your filters right now.",
+    "emptyta": "No TAs found.",
+    "emptylec": "No lecturers found.",
+    "back": "Back to Contacts",
+    "status": {
+      "active": "ACTIVE",
+      "inactive": "INACTIVE"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "roleType": "Role Type",
+      "lecturer": "Lecturer",
+      "ta": "TA",
+      "profilePhoto": "Profile Photo",
+      "email": "Email",
+      "building": "Building",
+      "room": "Room",
+      "bio": "Bio / Notes",
+      "courseTags": "Course Tags",
+      "otherWay": "Other Contact Method "
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "archive": "Archive"
+    },
+    "new": {
+      "heading": "New Contact",
+      "description": "Fill in the contact details below. You can save as a draft or publish immediately."
+    },
+    "editPage": {
+      "heading": "Edit Contact",
+      "description": "Update the contact details below."
+    },
+    "error": {
+      "name": "Name is required.",
+      "email": "Email is required." 
+      }
+    },
+  "resources": {
+    "title": "Links",
+    "notFound": "Resource link not found.",
+    "scope": {
+      "mine": "My Links"
+    },
+    "empty": {
+      "search": "No resource links match your search.",
+      "mine": "You haven't added any links yet.",
+      "all": "No resource links match your filters right now."
+    },
+    "confirm": {
+      "archive": "Archive this link? It will be hidden from students but kept here for reference.",
+      "delete": "Permanently delete this link? This cannot be undone."
+    },
+    "draftToast": "Saved to Drafts",
+    "new": {
+      "heading": "New Resource Link",
+      "description": "Fill in the details below. You can save as a draft, or publish immediately once at least one tag is selected."
+    },
+    "edit": {
+      "heading": "Edit Resource Link",
       "description": "Update the details below and save your changes."
     }
   },

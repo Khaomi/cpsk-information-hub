@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/src/lib/supabase/client";
 import { fetchTags, Tag } from "@/src/lib/tags";
 import FaqForm, { FaqFormValues } from "@/src/components/faq-form";
 
 export default function AskFaqPage() {
   const router = useRouter();
+  const t = useTranslations();
 
   const [_tags, setTags] = useState<Tag[]>([]);
   const [, setLoading] = useState(false);
@@ -102,7 +104,7 @@ export default function AskFaqPage() {
       router.push(`/faqs/${faqId}`);
     } catch (err: unknown) {
       console.error("Error creating question:", err);
-      const errMessage = err instanceof Error ? err.message : "Failed to submit your question.";
+      const errMessage = err instanceof Error ? err.message : t("validation.saveFailed");
       setError(errMessage);
     } finally {
       setLoading(false);
@@ -112,9 +114,9 @@ export default function AskFaqPage() {
   return (
     <div className="max-w-3xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-stone-900">Ask a Question</h1>
+        <h1 className="text-2xl font-bold text-stone-900">{t("faqs.new.heading")}</h1>
         <p className="text-sm text-stone-600 mt-1">
-          Post your question or inquiry here. Submissions are anonymous to students by default.
+          {t("faqs.new.description")}
         </p>
       </div>
 

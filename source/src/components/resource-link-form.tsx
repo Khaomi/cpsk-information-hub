@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 import { toDateTimeInputValue } from "@/src/lib/announcements";
@@ -45,6 +46,7 @@ export default function ResourceLinkForm({
   onSubmit,
   onCancel,
 }: ResourceLinkFormProps) {
+  const t = useTranslations();
   const [values, setValues] = useState<ResourceLinkFormValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   // Frozen at mount rather than recomputed every render, so the picker's
@@ -59,7 +61,7 @@ export default function ResourceLinkForm({
     setValues((prev) => ({
       ...prev,
       tagIds: prev.tagIds.includes(tagId)
-        ? prev.tagIds.filter((t) => t !== tagId)
+        ? prev.tagIds.filter((id) => id !== tagId)
         : [...prev.tagIds, tagId],
     }));
   };
@@ -67,22 +69,22 @@ export default function ResourceLinkForm({
   // TODO: FIX PUBLISH DATE
   const validateRequiredFields = (values: ResourceLinkFormValues): FormErrors => {
     const next: FormErrors = {};
-    if (!values.title.trim()) next.title = "Title is required.";
+    if (!values.title.trim()) next.title = t("form.errors.titleRequired");
     if (!values.url.trim()) {
-      next.url = "URL is required.";
+      next.url = t("form.errors.urlRequired");
     } else if (!isValidUrl(values.url.trim())) {
-      next.url = "Enter a valid URL, starting with http:// or https://";
+      next.url = t("form.errors.urlInvalid");
     }
     if (
       values.publishedDate &&
       values.publishedDate !== initialValues.publishedDate &&
       new Date(values.publishedDate).getTime() < Date.now()
     ) {
-      next.publishedDate = "You can only publish for now or a future date and time.";
+      next.publishedDate = t("form.errors.publishedDateFuture");
     }
     return next;
   };
-  
+
   const handleSave = (status: "draft" | "published"): void => {
     // Validate against what the user actually typed — never validate an
     // auto-filled date against itself, since minute-precision rounding
@@ -98,7 +100,7 @@ export default function ResourceLinkForm({
 
     // Same rule as announcements.
     if (status === "published" && effectiveValues.tagIds.length === 0) {
-      fieldErrors.tags = "Select at least one tag before publishing.";
+      fieldErrors.tags = t("validation.selectTagBeforePublish");
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -118,13 +120,13 @@ export default function ResourceLinkForm({
         className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back
+        {t("common.back")}
       </button>
 
       <div className="space-y-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-1">
-            Title <span className="text-red-500">*</span>
+            {t("form.fields.title")} <span className="text-red-500">*</span>
           </label>
           <input
             id="title"
@@ -140,7 +142,7 @@ export default function ResourceLinkForm({
 
         <div>
           <label htmlFor="url" className="block text-sm font-medium text-stone-700 mb-1">
-            URL <span className="text-red-500">*</span>
+            {t("form.fields.url")} <span className="text-red-500">*</span>
           </label>
           <input
             id="url"
@@ -157,7 +159,10 @@ export default function ResourceLinkForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-
+            <label htmlFor="publishedDate" className="block text-sm font-medium text-stone-700 mb-1">
+              {t("form.fields.publishedDate")}{" "}
+              <span className="text-stone-400 font-normal">{t("form.fields.publishedDateOptional")}</span>
+            </label>
             <input
               id="publishedDate"
               type="datetime-local"
@@ -173,7 +178,8 @@ export default function ResourceLinkForm({
 
           <div>
             <label htmlFor="expiryDate" className="block text-sm font-medium text-stone-700 mb-1">
-              Expiry Date &amp; Time <span className="text-stone-400 font-normal">(optional)</span>
+              {t("form.fields.expiryDate")}{" "}
+              <span className="text-stone-400 font-normal">{t("form.fields.expiryDateOptional")}</span>
             </label>
             <input
               id="expiryDate"
@@ -188,10 +194,11 @@ export default function ResourceLinkForm({
 
         <fieldset>
           <legend className="block text-sm font-medium text-stone-700 mb-1">
-            Target Tags <span className="text-stone-400 font-normal">(required to publish)</span>
+            {t("form.fields.targetTags")}{" "}
+            <span className="text-stone-400 font-normal">{t("form.fields.targetTagsRequired")}</span>
           </legend>
           <div className="flex flex-wrap gap-2">
-            {tags.length === 0 && <p className="text-xs text-stone-400">No tags available yet.</p>}
+            {tags.length === 0 && <p className="text-xs text-stone-400">{t("form.noTagsAvailable")}</p>}
             {tags.map((tag) => {
               const selected = values.tagIds.includes(tag.id);
               return (
@@ -219,14 +226,14 @@ export default function ResourceLinkForm({
             onClick={() => handleSave("published")}
             className="rounded-md bg-teal-600 text-white text-sm font-medium px-4 py-2 hover:bg-teal-700 transition-colors"
           >
-            Publish
+            {t("form.actions.publish")}
           </button>
           <button
             type="button"
             onClick={() => handleSave("draft")}
             className="rounded-md border border-stone-300 text-stone-700 text-sm font-medium px-4 py-2 hover:bg-stone-50 transition-colors"
           >
-            Save as Draft
+            {t("form.actions.saveAsDraft")}
           </button>
         </div>
       </div>
