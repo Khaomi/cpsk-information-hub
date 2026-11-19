@@ -201,7 +201,7 @@ export default function Header() {
               type="button"
               onClick={openMobileFilters}
               aria-label={t("header.filters.ariaLabel")}
-              className="w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
+              className="md:hidden w-8 h-8 shrink-0 rounded-md bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             >
               <SlidersHorizontal className="w-4 h-4 text-stone-700" />
             </button>

@@ -236,11 +236,15 @@ export default function SchedulesPage() {
       ) : loading || !selectedKey || !now ? (
         <p className="text-sm text-stone-500">Loading...</p>
       ) : (
-        // Equal columns from sm up with the calendar on the left; on phones the
-        // calendar comes first, then the selected day, then "Coming up". From sm
-        // up the right column is taken out of flow (absolute), so the calendar
-        // alone sets the row height and the lists scroll inside that height.
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        // Two equal columns once the content area is at least 36rem wide, with
+        // the calendar on the left; narrower, the calendar comes first, then the
+        // selected day, then "Coming up". This uses the content area's width
+        // (@container), not the screen's, because the filter sidebar takes
+        // space from md up. In two columns the right one is taken out of flow
+        // (absolute), so the calendar alone sets the row height and the lists
+        // scroll inside that height.
+        <div className="@container">
+        <div className="grid grid-cols-1 @xl:grid-cols-2 gap-4">
           <div className="min-w-0">
             <ScheduleCalendar
               year={view.year}
@@ -254,8 +258,8 @@ export default function SchedulesPage() {
             />
           </div>
 
-          <div className="min-w-0 sm:relative">
-            <div className="flex flex-col gap-4 sm:absolute sm:inset-0 sm:overflow-y-auto">
+          <div className="min-w-0 @xl:relative">
+            <div className="flex flex-col gap-4 @xl:absolute @xl:inset-0 @xl:overflow-y-auto">
             <ScheduleDayList
               dateKey={selectedKey}
               isToday={selectedKey === todayKey}
@@ -274,6 +278,7 @@ export default function SchedulesPage() {
             />
             </div>
           </div>
+        </div>
         </div>
       )}
 

@@ -42,7 +42,8 @@
     },
     "findTag": {
       "placeholder": "ค้นหาแท็ก...",
-      "ariaLabel": "ค้นหาแท็ก"
+      "ariaLabel": "ค้นหาแท็ก",
+      "noResults": "ไม่พบแท็ก"
     },
     "loadError": "ไม่สามารถโหลดแท็กได้ โปรดลองอีกครั้ง",
     "search": "ค้นหา",
