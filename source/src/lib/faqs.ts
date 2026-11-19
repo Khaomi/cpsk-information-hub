@@ -187,55 +187,79 @@ export function subscribeToFaqs(onChange: () => void) {
   };
 }
 
-async function clearFaqAttachments(supabase: SupabaseClient, faqId: string): Promise<void> {
+type FaqAttachmentInfo = {
+  attachmentIds: string[];
+  filePaths: string[];
+};
+
+async function getFaqAttachments(supabase: SupabaseClient, faqId: string): Promise<FaqAttachmentInfo> {
+  type FaqAttachmentLinkRow = {
+    attachment_id: string;
+    attachment: { url: string } | { url: string }[] | null;
+  };
+
+  const { data: links, error } = await supabase
+    .from("faq_attachment")
+    .select("attachment_id, attachment(url)")
+    .eq("faq_id", faqId);
+  if (error) throw error;
+
+  const typedLinks = (links as FaqAttachmentLinkRow[] | null) ?? [];
+
+  const filePaths = typedLinks
+    .map((item) => {
+      const attObj = Array.isArray(item.attachment) ? item.attachment[0] : item.attachment;
+      const url = attObj?.url;
+      if (!url) return null;
+      const parts = url.split("/attachments/");
+      return parts.length > 1 ? parts[1] : null;
+    })
+    .filter((path): path is string => Boolean(path));
+
+  return {
+    attachmentIds: typedLinks.map((item) => item.attachment_id),
+    filePaths,
+  };
+}
+
+async function clearFaqAttachments(supabase: SupabaseClient, info: FaqAttachmentInfo): Promise<void> {
   try {
-    type FaqAttachmentLinkRow = {
-      attachment_id: string;
-      attachment: { url: string } | { url: string }[] | null;
-    };
-
-    // 1. Fetch linked attachments
-    const { data: links } = await supabase
-      .from("faq_attachment")
-      .select("attachment_id, attachment(url)")
-      .eq("faq_id", faqId);
-
-    const typedLinks = (links as FaqAttachmentLinkRow[] | null) ?? [];
-    if (typedLinks.length === 0) return;
-
-    // 2. Remove files from Supabase Storage bucket
-    const filePaths = typedLinks
-      .map((item) => {
-        const attObj = Array.isArray(item.attachment) ? item.attachment[0] : item.attachment;
-        const url = attObj?.url;
-        if (!url) return null;
-        const parts = url.split("/attachments/");
-        return parts.length > 1 ? parts[1] : null;
-      })
-      .filter(Boolean) as string[];
-
-    if (filePaths.length > 0) {
-      await supabase.storage.from("attachments").remove(filePaths);
+    if (info.filePaths.length > 0) {
+      const { error } = await supabase.storage.from("attachments").remove(info.filePaths);
+      if (error) throw error;
     }
-
-    // 3. Delete attachment metadata records
-    const attachmentIds = typedLinks.map((item) => item.attachment_id);
-    await supabase.from("attachment").delete().in("id", attachmentIds);
+    if (info.attachmentIds.length > 0) {
+      const { error } = await supabase.from("attachment").delete().in("id", info.attachmentIds);
+      if (error) throw error;
+    }
   } catch (err) {
-    console.error("Error clearing attachments (proceeding with FAQ deletion):", err);
+    // The FAQ is already gone; at worst an unused file is left in storage.
+    console.error("FAQ deleted, but cleaning up its attachments failed:", err);
   }
 }
 
 /**
  * Delete an FAQ along with linked attachments and storage files.
+ * The FAQ is deleted first, so a failed delete never loses its images.
  */
 export async function deleteFaq(id: string): Promise<void> {
   const supabase = createClient();
 
-  // Clear storage files and attachment rows first (non-blocking)
-  await clearFaqAttachments(supabase, id);
+  // 1. Remember the attachments now: deleting the FAQ cascades faq_attachment away
+  const attachments = await getFaqAttachments(supabase, id);
 
-  // Delete the FAQ row (faq_tag and faq_comments cascade delete automatically)
-  const { error } = await supabase.from("faqs").delete().eq("id", id);
+  // 2. Delete the FAQ (faq_tag, faq_attachment and faq_comments cascade).
+  //    RLS blocks return no error, just no rows, so check what was deleted.
+  const { data: deleted, error } = await supabase
+    .from("faqs")
+    .delete()
+    .eq("id", id)
+    .select("id");
   if (error) throw error;
+  if (!deleted || deleted.length === 0) {
+    throw new Error("This question could not be deleted. You may not have permission to delete it.");
+  }
+
+  // 3. Only now remove the files and attachment rows
+  await clearFaqAttachments(supabase, attachments);
 }
