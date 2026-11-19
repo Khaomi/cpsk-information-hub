@@ -85,7 +85,7 @@ export default function EditFaqPage({ params }: Props) {
   if (!faq) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <p className="text-sm text-stone-500">{t("faqs.notfound")}</p>
+        <p className="text-sm text-stone-500">{t("faqs.notFound")}</p>
       </div>
     );
   }
