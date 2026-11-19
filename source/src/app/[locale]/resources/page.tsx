@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Link } from "@/src/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/src/i18n/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   ResourceLink,
@@ -35,6 +35,11 @@ export default function ResourceLinksPage() {
   const { user, isStaff } = useRole();
   const searchParams = useSearchParams();
   const query = (searchParams.get("query") ?? "").trim().toLowerCase();
+
+  // tag
+  const router = useRouter();
+  const pathname = usePathname();
+  const selectedTags = searchParams.getAll("tag");
 
   const [items, setItems] = useState<ResourceLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,11 +77,16 @@ export default function ResourceLinksPage() {
       : isStaff
         ? items.filter((rl) => rl.status !== "DRAFT")
         : items.filter((rl) => rl.status === "ACTIVE")
-  ).filter((rl) =>
-    query
-      ? rl.title.toLowerCase().includes(query) || rl.url.toLowerCase().includes(query)
-      : true
-  );
+  ).filter((rl) => {
+    // Show items whose tags include at least one selected tag.
+    const matchesTags =
+      selectedTags.length === 0 || rl.tags.some((tag) => selectedTags.includes(tag.name));
+    const matchesQuery =
+      !query ||
+      rl.title.toLowerCase().includes(query) ||
+      rl.url.toLowerCase().includes(query);
+    return matchesTags && matchesQuery;
+  });
 
   const handleArchive = async (rl: ResourceLink): Promise<void> => {
     await setResourceLinkArchived(rl.id, rl.startsAt);
@@ -105,7 +115,10 @@ export default function ResourceLinksPage() {
   };
 
   const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tag");
+    selectedTags.forEach((tag) => params.append("tag", tag));
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
