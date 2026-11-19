@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo ,useState } from "react";
 import { useRole } from "@/src/components/role-context";
+import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import ScheduleCalendar from "@/src/components/schedules/schedule-calendar";
 import ScheduleComingUp, { ComingUpDay } from "@/src/components/schedules/schedule-coming-up";
@@ -33,6 +34,8 @@ export default function SchedulesPage() {
   // This only hides the controls; the real staff-only check is the RLS
   // policies on public.schedule, so a student can't write via the API either.
   const { isStaff } = useRole();
+  const searchParams = useSearchParams();
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
 
   const [items, setItems] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,15 +119,26 @@ export default function SchedulesPage() {
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, ScheduleEvent[]> = {};
-    // Same rule as the home feed (US-12): keep events with at least one selected tag
-    const visible =
-      filterTags.length === 0 ? items : items.filter((e) => e.tags.some((tag) => filterTags.includes(tag.name)));
+
+    const visible = items.filter((e) => {
+      // Tag filter from the drawer (same rule as the home feed, US-12)
+      const matchesTags = filterTags.length === 0 || e.tags.some((tag) => filterTags.includes(tag.name));
+
+      // Keyword search: event name and description only
+      const matchesQuery =
+        !query ||
+        e.title.toLowerCase().includes(query) ||
+        (e.description ?? "").toLowerCase().includes(query);
+
+      return matchesTags && matchesQuery;
+    });
+
     for (const event of visible) {
       (map[event.date] ??= []).push(event);
     }
     for (const list of Object.values(map)) list.sort(compareByStartTime);
     return map;
-  }, [items, filterTags]);
+  }, [items, filterTags, query]);
 
   const eventCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -144,6 +158,34 @@ export default function SchedulesPage() {
     setSelectedKey(key);
     setView({ year: d.getFullYear(), month: d.getMonth() });
   };
+
+  // Jump to a matching day when the search term changes. Remembers which query
+  // it already jumped for, so later changes (clicking another day, live
+  // updates) don't pull the selection back. This runs during render, guarded
+  // so it settles after one extra pass, instead of in an effect.
+  const [jumpedQuery, setJumpedQuery] = useState("");
+
+  if (!query && jumpedQuery !== "") {
+    setJumpedQuery("");
+  } else if (query && query !== jumpedQuery && selectedKey && todayKey) {
+    const matchingKeys = Object.keys(eventsByDate)
+      .filter((key) => eventsByDate[key]?.length)
+      .sort();
+
+    // No matches yet: leave jumpedQuery alone so it retries when data arrives.
+    if (matchingKeys.length > 0) {
+      setJumpedQuery(query);
+
+      // Stay on the current day if it already matches, otherwise go to the next
+      // upcoming match, or the latest past one if none are ahead.
+      const target = eventsByDate[selectedKey]?.length
+        ? selectedKey
+        : (matchingKeys.find((key) => key >= todayKey) ?? matchingKeys[matchingKeys.length - 1]);
+
+      // Also re-syncs the calendar to that day's month.
+      selectDay(target);
+    }
+  }
 
   const shiftMonth = (delta: number): void => {
     setView((prev) => {

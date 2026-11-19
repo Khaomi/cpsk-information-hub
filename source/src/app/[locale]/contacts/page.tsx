@@ -66,6 +66,7 @@ export default function ContactsPage() {
         ? items.filter((c) => c.status !== "DRAFT")
         : items.filter((c) => c.status === "ACTIVE")
   ).filter((c) =>
+
     query
       ? c.name.toLowerCase().includes(query) || (c.email ?? "").toLowerCase().includes(query)
       : true

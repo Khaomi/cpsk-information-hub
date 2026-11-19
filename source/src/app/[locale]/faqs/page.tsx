@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquarePlus, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Faq,
@@ -25,6 +26,9 @@ const STATUS_BADGE: Record<FaqStatus, string> = {
 
 export default function FAQsPage() {
   const { user, isStaff } = useRole();
+  const searchParams = useSearchParams();
+  const query = (searchParams.get("query") ?? "").trim().toLowerCase();
+  
   const t = useTranslations();
   const [items, setItems] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +49,15 @@ export default function FAQsPage() {
 
   const visibleItems = items.filter((f) => {
     if (statusFilter !== "ALL" && f.status !== statusFilter) return false;
+
+    // Keyword search looks at the question (title) and description only.
+    if (query) {
+      const matchesQuery =
+        f.question.toLowerCase().includes(query) ||
+        (f.description ?? "").toLowerCase().includes(query);
+      if (!matchesQuery) return false;
+    }
+
     return true;
   });
 
@@ -115,6 +128,7 @@ export default function FAQsPage() {
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
       ) : visibleItems.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 p-8 text-center text-stone-500 text-sm">
+         {query ? "No questions match your search." : "No questions found under this filter."}
           {t("faqs.empty")}
         </div>
       ) : (
