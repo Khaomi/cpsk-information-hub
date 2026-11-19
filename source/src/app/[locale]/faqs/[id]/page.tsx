@@ -84,7 +84,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
       setActionError("Unauthorized: Only staff can reply.");
       return;
     }
-    if (!canEdit) {
+    if (canEdit) {
       setActionError("You cannot answer your own question.");
       return;
     }
