@@ -39,6 +39,10 @@ export default function FAQsPage() {
   const loadItems = (): void => {
     fetchFaqs()
       .then(setItems)
+      .catch((err) => {
+        console.error("Failed to load FAQs:", err);
+        setItems([]);
+      })
       .finally(() => setLoading(false));
   };
 

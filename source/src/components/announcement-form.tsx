@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 import { toDateTimeInputValue } from "@/src/lib/announcements";
+import { DepartmentOnlyField } from "@/src/components/department-only";
 
 export type AnnouncementFormValues = {
   title: string;
@@ -17,6 +18,7 @@ export type AnnouncementFormValues = {
   // kept separate from imageFile so "replace" and "clear" are distinguishable.
   imageFile: File | null;
   removeImage: boolean;
+  departmentOnly: boolean;
 };
 
 type FormErrors = Partial<Record<"title" | "body" | "publishedDate" | "tags", string>>;
@@ -38,6 +40,7 @@ const EMPTY_VALUES: AnnouncementFormValues = {
   tagIds: [],
   imageFile: null,
   removeImage: false,
+  departmentOnly: true,
 };
 
 export default function AnnouncementForm({
@@ -266,6 +269,11 @@ export default function AnnouncementForm({
           </div>
           {errors.tags && <p className="text-xs text-red-600 mt-1">{errors.tags}</p>}
         </fieldset>
+
+        <DepartmentOnlyField
+          checked={values.departmentOnly}
+          onChange={(checked) => update("departmentOnly", checked)}
+        />
 
         <div className="flex gap-3 pt-2">
           <button

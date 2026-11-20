@@ -16,6 +16,7 @@ import {
 } from "@/src/lib/announcements";
 import { colorForTag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 
 type Props = {
   // In current Next.js, params is a Promise, not a plain object —
@@ -38,6 +39,10 @@ export default function AnnouncementDetailPage({ params }: Props) {
   useEffect(() => {
     fetchAnnouncementById(id)
       .then(setAnnouncement)
+      .catch((err) => {
+        console.error("Failed to load announcement:", err);
+        setAnnouncement(null);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -222,6 +227,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
         )}
 
         <div className="flex flex-wrap gap-1.5 mb-2">
+          {announcement.departmentOnly && <DepartmentOnlyBadge />}
           {announcement.tags.map((tag) => (
             <span key={tag.id} className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
               {tag.name}

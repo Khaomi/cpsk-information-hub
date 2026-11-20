@@ -9,6 +9,7 @@ import { formatDisplayDate } from "@/src/lib/announcements";
 import { ResourceLink, fetchResourceLinks, subscribeToResourceLinks } from "@/src/lib/resourceLinks";
 import { colorForTag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 
 type Props = {
   // In current Next.js, params is a Promise, not a plain object —
@@ -91,6 +92,7 @@ export default function ResourceLinkDetailPage({ params }: Props) {
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-2">
+          {resourceLink.departmentOnly && <DepartmentOnlyBadge />}
           {resourceLink.tags.map((tag) => (
             <span key={tag.id} className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
               {tag.name}

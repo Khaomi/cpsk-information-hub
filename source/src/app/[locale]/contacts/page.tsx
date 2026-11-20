@@ -14,6 +14,7 @@ import {
   subscribeToContacts,
 } from "@/src/lib/contacts";
 import { colorForTag } from "@/src/lib/tags";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 import { useRole } from "@/src/components/role-context";
 
 const STATUS_BADGE: Record<ContactStatus, string> = {
@@ -37,6 +38,10 @@ export default function ContactsPage() {
   const loadItems = (): void => {
     fetchContacts()
       .then(setItems)
+      .catch((err) => {
+        console.error("Failed to load contacts:", err);
+        setItems([]);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -121,6 +126,7 @@ export default function ContactsPage() {
           {/* Tags / Badges */}
           {/* Tags / Badges */}
           <div className="flex flex-wrap gap-1.5 my-2">
+            {c.departmentOnly && <DepartmentOnlyBadge />}
             {c.tags.map((tag) => (
               <span key={tag.id} className={`text-xs px-3 py-1 rounded-full font-medium ${colorForTag(tag)}`}>
                 {tag.name}

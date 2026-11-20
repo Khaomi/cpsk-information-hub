@@ -79,6 +79,7 @@ export default function EditResourceLinkPage({ params }: Props) {
     publishedDate: toDateTimeInputValue(resourceLink.startsAt ?? resourceLink.draftStartsAt),
     expiryDate: toDateTimeInputValue(resourceLink.endsAt ?? resourceLink.draftEndsAt),
     tagIds: resourceLink.tags.map((t) => t.id),
+    departmentOnly: resourceLink.departmentOnly,
   };
 
   return (

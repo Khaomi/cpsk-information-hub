@@ -17,6 +17,7 @@ import {
 } from "@/src/lib/resourceLinks";
 import { colorForTag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 
 const STATUS_BADGE: Record<ResourceLinkStatus, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-800",
@@ -176,6 +177,7 @@ export default function ResourceLinksPage() {
                 {t("announcements.postedOn", { date: formatDisplayDate(rl.startsAt), author: rl.authorName })}
               </span>
               <div className="flex flex-wrap gap-1.5 mt-2">
+                {rl.departmentOnly && <DepartmentOnlyBadge />}
                 {rl.tags.map((tag) => (
                   <span key={tag.id} className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
                     {tag.name}

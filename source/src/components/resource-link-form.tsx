@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 import { toDateTimeInputValue } from "@/src/lib/announcements";
+import { DepartmentOnlyField } from "@/src/components/department-only";
 
 export type ResourceLinkFormValues = {
   title: string;
@@ -12,6 +13,7 @@ export type ResourceLinkFormValues = {
   publishedDate: string;
   expiryDate: string;
   tagIds: string[];
+  departmentOnly: boolean;
 };
 
 type FormErrors = Partial<Record<"title" | "url" | "publishedDate" | "tags", string>>;
@@ -29,6 +31,7 @@ const EMPTY_VALUES: ResourceLinkFormValues = {
   publishedDate: "",
   expiryDate: "",
   tagIds: [],
+  departmentOnly: true,
 };
 
 function isValidUrl(value: string): boolean {
@@ -219,6 +222,11 @@ export default function ResourceLinkForm({
           </div>
           {errors.tags && <p className="text-xs text-red-600 mt-1">{errors.tags}</p>}
         </fieldset>
+
+        <DepartmentOnlyField
+          checked={values.departmentOnly}
+          onChange={(checked) => update("departmentOnly", checked)}
+        />
 
         <div className="flex gap-3 pt-2">
           <button

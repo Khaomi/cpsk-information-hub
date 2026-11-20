@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { isValidDateKey, type ScheduleEvent, type ScheduleEventInput } from "@/src/lib/schedules";
 import { colorForTag, type Tag } from "@/src/lib/tags";
+import { DepartmentOnlyField } from "@/src/components/department-only";
 
 // Every field is a plain string while editing; empty optional fields become
 // null only when submitted (see toInput).
@@ -15,6 +16,7 @@ export type ScheduleFormValues = {
   location: string;
   description: string;
   tagIds: string[]; // optional: an event may have no tags
+  departmentOnly: boolean;
 };
 
 type FormErrors = Partial<Record<"title" | "date" | "startTime" | "endTime" | "location", string>>;
@@ -28,7 +30,16 @@ type ScheduleFormModalProps = {
 };
 
 export function emptyScheduleFormValues(date: string): ScheduleFormValues {
-  return { title: "", date, startTime: "", endTime: "", location: "", description: "", tagIds: [] };
+  return {
+    title: "",
+    date,
+    startTime: "",
+    endTime: "",
+    location: "",
+    description: "",
+    tagIds: [],
+    departmentOnly: true,
+  };
 }
 
 export function scheduleFormValuesFrom(event: ScheduleEvent): ScheduleFormValues {
@@ -40,6 +51,7 @@ export function scheduleFormValuesFrom(event: ScheduleEvent): ScheduleFormValues
     location: event.location,
     description: event.description ?? "",
     tagIds: event.tags.map((tag) => tag.id),
+    departmentOnly: event.departmentOnly,
   };
 }
 
@@ -67,6 +79,7 @@ function toInput(values: ScheduleFormValues): ScheduleEventInput {
     location: values.location.trim(),
     description: values.description.trim() || null,
     tagIds: values.tagIds,
+    departmentOnly: values.departmentOnly,
   };
 }
 
@@ -277,6 +290,11 @@ export default function ScheduleFormModal({ mode, initialValues, tags, onSubmit,
               })}
             </div>
           </fieldset>
+
+          <DepartmentOnlyField
+            checked={values.departmentOnly}
+            onChange={(checked) => update("departmentOnly", checked)}
+          />
 
           <div className="flex gap-3 pt-2">
             <button

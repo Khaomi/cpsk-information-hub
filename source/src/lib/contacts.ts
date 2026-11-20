@@ -18,6 +18,8 @@ export type Contact = {
   creatorId: string;
   tags: Tag[];
   imageUrl: string | null;
+  // Hidden from visitors who aren't signed in (enforced by the database).
+  departmentOnly: boolean;
 };
 
 type ContactViewRow = {
@@ -31,6 +33,7 @@ type ContactViewRow = {
   bio: string | null;
   status: ContactStatus | null;
   creator_id: string | null;
+  department_only: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -105,6 +108,7 @@ async function attachRelations(supabase: SupabaseClient, rows: ContactViewRow[])
     creatorId: row.creator_id as string,
     tags: tagsByContact.get(row.id as string) ?? [],
     imageUrl: imageByContact.get(row.id as string) ?? null,
+    departmentOnly: row.department_only ?? true,
   }));
 }
 
@@ -215,6 +219,7 @@ export async function insertContact(
       bio: values.bio || null,
       status: status === "published" ? "ACTIVE" : "DRAFT",
       creator_id: creatorId,
+      department_only: values.departmentOnly,
     })
     .select("id")
     .single();
@@ -252,6 +257,7 @@ export async function updateContact(
       other_contact: values.otherContact || null,
       bio: values.bio || null,
       status: status === "published" ? "ACTIVE" : "DRAFT",
+      department_only: values.departmentOnly,
     })
     .eq("id", id);
   if (error) throw error;

@@ -37,20 +37,24 @@ export async function fetchFaqComments(faqId: string): Promise<FaqComment[]> {
     return [];
   }
 
-  // Extract unique author IDs and fetch their profiles
-  const authorIds = Array.from(new Set(typedComments.map((c) => c.author_id)));
-  
-  const { data: profilesData, error: profileError } = await supabase
-    .from("profile")
-    .select("*")
-    .in("id", authorIds);
-
-  if (profileError) {
-    throw new Error(profileError.message || "Failed to fetch comment author profiles");
-  }
-
+  // Extract unique author IDs and fetch their profiles. Guests have no access
+  // to the profile table at all (and signed-in users only see their own), so
+  // for a guest skip the query and fall back to the comment's is_staff below.
   const profileMap = new Map<string, ProfileRow>();
-  (profilesData as ProfileRow[] | null)?.forEach((p) => profileMap.set(p.id, p));
+  if (user) {
+    const authorIds = Array.from(new Set(typedComments.map((c) => c.author_id)));
+
+    const { data: profilesData, error: profileError } = await supabase
+      .from("profile")
+      .select("*")
+      .in("id", authorIds);
+
+    if (profileError) {
+      throw new Error(profileError.message || "Failed to fetch comment author profiles");
+    }
+
+    (profilesData as ProfileRow[] | null)?.forEach((p) => profileMap.set(p.id, p));
+  }
 
   return typedComments.map((c) => {
     const profile = profileMap.get(c.author_id);

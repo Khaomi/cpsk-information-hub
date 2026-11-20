@@ -86,6 +86,7 @@ export default function EditContactPage({ params }: Props) {
     tagIds: contact.tags.map((t) => t.id),
     imageFile: null,
     removeImage: false,
+    departmentOnly: contact.departmentOnly,
   };
 
   return (

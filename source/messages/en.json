@@ -330,5 +330,13 @@
         "description": "A shared document, video, or external link"
       }
     }
+  },
+  "visibility": {
+    "departmentOnly": {
+      "label": "Department only",
+      "hintOn": "Only signed-in department members can see this. Untick to show it to everyone.",
+      "hintOff": "Everyone can see this, including visitors who are not signed in.",
+      "badge": "Department only"
+    }
   }
 }
