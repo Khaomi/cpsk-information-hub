@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MapPin, Pencil, Trash2 } from "lucide-react";
 import { formatTimeRange, type ScheduleEvent } from "@/src/lib/schedules";
 import { colorForTag } from "@/src/lib/tags";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 
 type ScheduleEventItemProps = {
   event: ScheduleEvent;
@@ -58,8 +59,9 @@ export default function ScheduleEventItem({ event, canManage, onEdit, onDelete, 
         {event.description && (
           <span className="mt-1 block text-sm text-stone-600 leading-relaxed whitespace-pre-line">{event.description}</span>
         )}
-        {event.tags.length > 0 && (
+        {(event.tags.length > 0 || event.departmentOnly) && (
           <span className="mt-1.5 flex flex-wrap gap-1">
+            {event.departmentOnly && <DepartmentOnlyBadge />}
             {event.tags.map((tag) => (
               <span key={tag.id} className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
                 {tag.name}

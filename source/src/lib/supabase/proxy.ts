@@ -3,6 +3,21 @@ import type { Database } from "@/types/database.types";
 import { createServerClient } from "@supabase/ssr";
 import { routing } from "@/src/i18n/routing";
 
+// Pages a guest is sent to the login page for (paths without the locale
+// prefix): creating or editing content, asking a question, managing tags.
+const SIGN_IN_REQUIRED: RegExp[] = [
+  /^\/new\/?$/, // "create" menu
+  /^\/[^/]+\/new\/?$/, // e.g. /announcements/new, /resources/new
+  /^\/[^/]+\/[^/]+\/edit\/?$/, // e.g. /faqs/<id>/edit
+  /^\/faqs\/ask\/?$/,
+  /^\/tags(\/|$)/,
+  /^\/protected(\/|$)/,
+];
+
+function requiresSignIn(pathWithoutLocale: string): boolean {
+  return SIGN_IN_REQUIRED.some((pattern) => pattern.test(pathWithoutLocale));
+}
+
 export async function updateSession(request: NextRequest, response?: NextResponse) {
   // When a response is already queued (e.g. next-intl's locale redirect),
   // reuse it instead of creating a fresh one, so its status/location aren't
@@ -61,9 +76,10 @@ export async function updateSession(request: NextRequest, response?: NextRespons
     ? pathname.slice(localeMatch[0].length) || "/"
     : pathname;
 
-  if (!user && !pathWithoutLocale.startsWith("/auth")) {
-    // no user, redirect to the login page (including "/" itself — the
-    // whole app requires sign-in, there's no public home feed)
+  if (!user && requiresSignIn(pathWithoutLocale)) {
+    // Guests can browse; only pages that create or change content need an
+    // account. What a guest can read is decided by the database policies
+    // (20261119120000_public_access_and_department_only.sql), not here.
     const url = request.nextUrl.clone();
     const localePrefix = locale === routing.defaultLocale ? "" : `/${locale}`;
     url.pathname = `${localePrefix}/auth/login`;

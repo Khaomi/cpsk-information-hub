@@ -19,6 +19,8 @@ export type ResourceLink = {
   creatorId: string;
   authorName: string;
   tags: Tag[];
+  // Hidden from visitors who aren't signed in (enforced by the database).
+  departmentOnly: boolean;
 };
 
 type ResourceLinkViewRow = Tables<"resource_link_with_details">;
@@ -57,6 +59,7 @@ async function attachTags(supabase: SupabaseClient, rows: ResourceLinkViewRow[])
     creatorId: row.creator_id as string,
     authorName: row.author_name ?? "Unknown",
     tags: tagsByResourceLink.get(row.id as string) ?? [],
+    departmentOnly: row.department_only ?? true,
   }));
 }
 
@@ -133,6 +136,7 @@ export async function insertResourceLink(
       ends_at,
       draft_starts_at,
       draft_ends_at,
+      department_only: values.departmentOnly,
     })
     .select("id")
     .single();
@@ -152,7 +156,15 @@ export async function updateResourceLink(
   const { starts_at, ends_at, draft_starts_at, draft_ends_at } = computeDates(values, status);
   const { error } = await supabase
     .from("resource_link")
-    .update({ title: values.title, url: values.url, starts_at, ends_at, draft_starts_at, draft_ends_at })
+    .update({
+      title: values.title,
+      url: values.url,
+      starts_at,
+      ends_at,
+      draft_starts_at,
+      draft_ends_at,
+      department_only: values.departmentOnly,
+    })
     .eq("id", id);
   if (error) throw error;
 

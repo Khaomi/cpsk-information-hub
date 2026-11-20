@@ -83,6 +83,7 @@ export default function EditAnnouncementPage({ params }: Props) {
     tagIds: announcement.tags.map((t) => t.id),
     imageFile: null,
     removeImage: false,
+    departmentOnly: announcement.departmentOnly,
   };
 
   return (

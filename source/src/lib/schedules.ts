@@ -18,6 +18,7 @@ export type ScheduleEvent = {
   location: string;
   description: string | null;
   tags: Tag[]; // from public.schedule_tag, sorted by name
+  departmentOnly: boolean; // hidden from visitors who aren't signed in (enforced by the database)
 };
 
 // What the form submits: the chosen tags as ids, not whole Tag objects
@@ -119,7 +120,7 @@ type SupabaseClient = ReturnType<typeof createClient>;
 
 // Each schedule row comes back with its tags embedded through schedule_tag
 const SCHEDULE_SELECT =
-  "id, title, event_date, start_time, end_time, location, description, schedule_tag(tag(id, name, category))";
+  "id, title, event_date, start_time, end_time, location, description, department_only, schedule_tag(tag(id, name, category))";
 
 type ScheduleRowWithTags = {
   id: string;
@@ -129,6 +130,7 @@ type ScheduleRowWithTags = {
   end_time: string;
   location: string;
   description: string | null;
+  department_only: boolean;
   schedule_tag: { tag: Tag | null }[];
 };
 
@@ -150,6 +152,7 @@ function toEvent(row: ScheduleRowWithTags): ScheduleEvent {
       .map((link) => link.tag)
       .filter((tag): tag is Tag => tag !== null)
       .sort((a, b) => a.name.localeCompare(b.name)),
+    departmentOnly: row.department_only,
   };
 }
 
@@ -163,6 +166,7 @@ function toRow(values: ScheduleEventInput): ScheduleInsert {
     end_time: values.endTime,
     location: values.location,
     description: values.description,
+    department_only: values.departmentOnly,
   };
 }
 

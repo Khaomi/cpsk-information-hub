@@ -18,6 +18,7 @@ import {
 } from "@/src/lib/announcements";
 import { colorForTag } from "@/src/lib/tags";
 import { useRole } from "@/src/components/role-context";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 
 const STATUS_BADGE: Record<AnnouncementStatus, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-800",
@@ -51,6 +52,10 @@ export default function AnnouncementsPage() {
   const loadItems = (): void => {
     fetchAnnouncements()
       .then(setItems)
+      .catch((err) => {
+        console.error("Failed to load announcements:", err);
+        setItems([]);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -188,6 +193,7 @@ export default function AnnouncementsPage() {
                   {t("announcements.postedOn", { date: formatDisplayDate(a.startsAt), author: a.authorName })}
                 </span>
                 <div className="flex flex-wrap gap-1.5 mt-2">
+                  {a.departmentOnly && <DepartmentOnlyBadge />}
                   {a.tags.map((tag) => (
                     <span key={tag.id} className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
                       {tag.name}

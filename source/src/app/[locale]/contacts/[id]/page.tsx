@@ -12,6 +12,7 @@ import {
   subscribeToContact,
 } from "@/src/lib/contacts";
 import { colorForTag } from "@/src/lib/tags";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -29,6 +30,10 @@ export default function ContactDetailPage({ params }: Props) {
   useEffect(() => {
     fetchContactById(id)
       .then(setContact)
+      .catch((err) => {
+        console.error("Failed to load contact:", err);
+        setContact(null);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -105,6 +110,7 @@ export default function ContactDetailPage({ params }: Props) {
             
             {/* Tags matching the exact style used in the contacts list page */}
             <div className="flex flex-wrap gap-1.5 my-2">
+              {contact.departmentOnly && <DepartmentOnlyBadge />}
               {contact.tags.map((tag) => (
                 <span key={tag.id} className={`text-xs px-3 py-1 rounded-full font-medium ${colorForTag(tag)}`}>
                   {tag.name}

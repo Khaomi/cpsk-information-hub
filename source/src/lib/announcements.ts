@@ -23,6 +23,8 @@ export type Announcement = {
   authorName: string;
   tags: Tag[];
   imageUrl: string | null;
+  // Hidden from visitors who aren't signed in (enforced by the database).
+  departmentOnly: boolean;
 };
 
 type AnnouncementViewRow = Tables<"announcement_with_details">;
@@ -107,6 +109,7 @@ async function attachRelations(supabase: SupabaseClient, rows: AnnouncementViewR
     authorName: row.author_name ?? "Unknown",
     tags: tagsByAnnouncement.get(row.id as string) ?? [],
     imageUrl: imageByAnnouncement.get(row.id as string) ?? null,
+    departmentOnly: row.department_only ?? true,
   }));
 }
 
@@ -242,6 +245,7 @@ export async function insertAnnouncement(
       ends_at,
       draft_starts_at,
       draft_ends_at,
+      department_only: values.departmentOnly,
     })
     .select("id")
     .single();
@@ -270,7 +274,15 @@ export async function updateAnnouncement(
   const { starts_at, ends_at, draft_starts_at, draft_ends_at } = computeDates(values, status);
   const { error } = await supabase
     .from("announcement")
-    .update({ title: values.title, body: values.body, starts_at, ends_at, draft_starts_at, draft_ends_at })
+    .update({
+      title: values.title,
+      body: values.body,
+      starts_at,
+      ends_at,
+      draft_starts_at,
+      draft_ends_at,
+      department_only: values.departmentOnly,
+    })
     .eq("id", id);
   if (error) throw error;
 

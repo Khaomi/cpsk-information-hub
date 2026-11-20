@@ -8,6 +8,7 @@ import FilterableLayout from "@/src/components/filterable-layout";
 import { Announcement, fetchAnnouncements, formatDisplayDate, subscribeToAnnouncements, summarize } from "@/src/lib/announcements";
 import { ResourceLink, fetchResourceLinks, subscribeToResourceLinks } from "@/src/lib/resourceLinks";
 import { colorForTag } from "@/src/lib/tags";
+import { DepartmentOnlyBadge } from "@/src/components/department-only";
 
 // A single mixed-feed item, regardless of which content type it came from.
 // Each real item still lives in its own table (Announcement, FAQ, Schedule, ...);
@@ -22,6 +23,7 @@ type FeedItem = {
   date: string;
   sortTime: number; // raw timestamp, used only to sort the mixed feed newest-first
   tags: { label: string; color: string }[];
+  departmentOnly: boolean;
 };
 
 const TYPE_BADGE: Record<FeedItem["contentType"], string> = {
@@ -65,6 +67,7 @@ export default function HomePage() {
             date: formatDisplayDate(a.startsAt),
             sortTime: a.startsAt ? new Date(a.startsAt).getTime() : 0,
             tags: a.tags.map((tag) => ({ label: tag.name, color: colorForTag(tag) })),
+            departmentOnly: a.departmentOnly,
           }));
 
         // Resource links have no detail page, so the card links through to
@@ -82,6 +85,7 @@ export default function HomePage() {
               date: formatDisplayDate(rl.startsAt),
               sortTime: rl.startsAt ? new Date(rl.startsAt).getTime() : 0,
               tags: rl.tags.map((tag) => ({ label: tag.name, color: colorForTag(tag) })),
+              departmentOnly: rl.departmentOnly,
             }));
 
         setFeedItems([...announcementItems, ...resourceLinkItems].sort((a, b) => b.sortTime - a.sortTime));
@@ -143,6 +147,7 @@ export default function HomePage() {
                   <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${TYPE_BADGE[item.contentType]}`}>
                     {item.contentType}
                   </span>
+                  {item.departmentOnly && <DepartmentOnlyBadge />}
                 </div>
                 <h2 className="font-semibold text-base leading-snug mt-1.5">{item.title}</h2>
                 <span className="text-xs text-stone-400 mt-1 block">{item.date}</span>

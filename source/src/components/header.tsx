@@ -90,7 +90,8 @@ export default function Header() {
   const handleSignOut = async (): Promise<void> => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/auth/login");
+    // Guests can browse, so stay on the site; refresh drops department-only items
+    router.push("/");
     router.refresh();
   };
 
@@ -137,9 +138,10 @@ export default function Header() {
             <Link
               href="/auth/login"
               aria-label={t("header.account.signIn")}
-              className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
+              className="h-8 rounded-full bg-stone-100 px-2 sm:px-3 flex items-center gap-1.5 text-sm font-medium text-stone-700 hover:bg-stone-200 transition-colors"
             >
               <User className="w-4 h-4 text-stone-600" />
+              <span className="hidden sm:inline">{t("header.account.signIn")}</span>
             </Link>
           )}
         </div>

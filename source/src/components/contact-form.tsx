@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { colorForTag, type Tag } from "@/src/lib/tags";
 import type { ContactRoleType } from "@/src/lib/contacts";
+import { DepartmentOnlyField } from "@/src/components/department-only";
 
 export type ContactFormValues = {
   name: string;
@@ -17,6 +18,7 @@ export type ContactFormValues = {
   tagIds: string[];
   imageFile: File | null;
   removeImage: boolean;
+  departmentOnly: boolean;
 };
 
 type FormErrors = Partial<Record<"name" | "email" | "bio" | "roleType" | "tags", string>>;
@@ -41,6 +43,7 @@ const EMPTY_VALUES: ContactFormValues = {
   tagIds: [],
   imageFile: null,
   removeImage: false,
+  departmentOnly: true,
 };
 
 export default function ContactForm({
@@ -312,6 +315,11 @@ export default function ContactForm({
           </div>
           {errors.tags && <p className="text-xs text-red-600 mt-1">{errors.tags}</p>}
         </fieldset>
+
+        <DepartmentOnlyField
+          checked={values.departmentOnly}
+          onChange={(checked) => update("departmentOnly", checked)}
+        />
 
         {/* Form Actions */}
         <div className="flex gap-3 pt-2">

@@ -19,6 +19,7 @@ export type Database = {
           body: string
           created_at: string
           creator_id: string
+          department_only: boolean
           draft_ends_at: string | null
           draft_starts_at: string | null
           ends_at: string | null
@@ -31,6 +32,7 @@ export type Database = {
           body: string
           created_at?: string
           creator_id: string
+          department_only?: boolean
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
@@ -43,6 +45,7 @@ export type Database = {
           body?: string
           created_at?: string
           creator_id?: string
+          department_only?: boolean
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
@@ -193,6 +196,7 @@ export type Database = {
           building: string | null
           created_at: string
           creator_id: string
+          department_only: boolean
           email: string | null
           id: string
           name: string
@@ -207,6 +211,7 @@ export type Database = {
           building?: string | null
           created_at?: string
           creator_id: string
+          department_only?: boolean
           email?: string | null
           id?: string
           name: string
@@ -221,6 +226,7 @@ export type Database = {
           building?: string | null
           created_at?: string
           creator_id?: string
+          department_only?: boolean
           email?: string | null
           id?: string
           name?: string
@@ -497,6 +503,7 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string
+          department_only: boolean
           draft_ends_at: string | null
           draft_starts_at: string | null
           ends_at: string | null
@@ -509,6 +516,7 @@ export type Database = {
         Insert: {
           created_at?: string
           creator_id: string
+          department_only?: boolean
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
@@ -521,6 +529,7 @@ export type Database = {
         Update: {
           created_at?: string
           creator_id?: string
+          department_only?: boolean
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
@@ -588,6 +597,7 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string | null
+          department_only: boolean
           description: string | null
           end_time: string
           event_date: string
@@ -600,6 +610,7 @@ export type Database = {
         Insert: {
           created_at?: string
           creator_id?: string | null
+          department_only?: boolean
           description?: string | null
           end_time: string
           event_date: string
@@ -612,6 +623,7 @@ export type Database = {
         Update: {
           created_at?: string
           creator_id?: string | null
+          department_only?: boolean
           description?: string | null
           end_time?: string
           event_date?: string
@@ -719,6 +731,7 @@ export type Database = {
           body: string | null
           created_at: string | null
           creator_id: string | null
+          department_only: boolean | null
           draft_ends_at: string | null
           draft_starts_at: string | null
           ends_at: string | null
@@ -734,6 +747,7 @@ export type Database = {
           body?: string | null
           created_at?: string | null
           creator_id?: string | null
+          department_only?: boolean | null
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
@@ -749,6 +763,7 @@ export type Database = {
           body?: string | null
           created_at?: string | null
           creator_id?: string | null
+          department_only?: boolean | null
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
@@ -795,6 +810,7 @@ export type Database = {
           building: string | null
           created_at: string | null
           creator_id: string | null
+          department_only: boolean | null
           email: string | null
           id: string | null
           name: string | null
@@ -809,6 +825,7 @@ export type Database = {
           building?: string | null
           created_at?: string | null
           creator_id?: string | null
+          department_only?: boolean | null
           email?: string | null
           id?: string | null
           name?: string | null
@@ -823,6 +840,7 @@ export type Database = {
           building?: string | null
           created_at?: string | null
           creator_id?: string | null
+          department_only?: boolean | null
           email?: string | null
           id?: string | null
           name?: string | null
@@ -866,6 +884,7 @@ export type Database = {
           author_name: string | null
           created_at: string | null
           creator_id: string | null
+          department_only: boolean | null
           draft_ends_at: string | null
           draft_starts_at: string | null
           ends_at: string | null
@@ -881,6 +900,7 @@ export type Database = {
           author_name?: never
           created_at?: string | null
           creator_id?: string | null
+          department_only?: boolean | null
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
@@ -896,6 +916,7 @@ export type Database = {
           author_name?: never
           created_at?: string | null
           creator_id?: string | null
+          department_only?: boolean | null
           draft_ends_at?: string | null
           draft_starts_at?: string | null
           ends_at?: string | null
