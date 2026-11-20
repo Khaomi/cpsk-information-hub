@@ -33,6 +33,7 @@ export default function FAQsPage() {
   const [items, setItems] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"ALL" | FaqStatus>("ALL");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ id: string; type: "delete" } | null>(null);
 
@@ -54,6 +55,7 @@ export default function FAQsPage() {
 
   const visibleItems = items.filter((f) => {
     if (statusFilter !== "ALL" && f.status !== statusFilter) return false;
+    if (selectedTags.length > 0 && !f.tags.some((tag) => selectedTags.includes(tag.name))) return false;
 
     if (query) {
       const matchesQuery =
@@ -92,7 +94,7 @@ export default function FAQsPage() {
   };
 
   return (
-    <FilterableLayout onApplyFilter={() => {}}>
+    <FilterableLayout onApplyFilter={setSelectedTags}>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">{t("faqs.heading")}</h1>
