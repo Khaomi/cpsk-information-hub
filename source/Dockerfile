@@ -9,7 +9,9 @@ ARG NODE_VERSION=24.20.0-slim
 
 FROM node:${NODE_VERSION} AS dependencies
 
-RUN apk add --no-cache libatomic
+RUN apt update \
+    && apt install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -39,6 +41,10 @@ FROM node:${NODE_VERSION} AS builder
 
 # Set working directory
 WORKDIR /app
+
+RUN apt update \
+    && apt install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy project dependencies from dependencies stage
 COPY --from=dependencies /app/node_modules ./node_modules
@@ -85,6 +91,10 @@ FROM node:${NODE_VERSION} AS runner
 
 # Set working directory
 WORKDIR /app
+
+RUN apt update \
+    && apt install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set production environment variables
 ENV NODE_ENV=production
