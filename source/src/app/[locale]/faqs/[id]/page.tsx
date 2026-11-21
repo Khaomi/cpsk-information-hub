@@ -194,6 +194,13 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
 
   const canEdit = Boolean(user && (faq.creatorId && user.id === faq.creatorId));
   const canReply = Boolean(isStaff && !canEdit);
+  const displayName =
+    isStaff || faq.authorId === user?.id
+      ? `${faq.authorName}`
+      : faq.isAnonymous
+      ? t("faqs.anonymous")
+      : faq.authorName;
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Top Bar */}
@@ -271,9 +278,7 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
               <UserCircle className="w-4 h-4 text-stone-400" />
               <span>
                 {t("faqs.askedBy", {
-                  author: !isStaff
-                    ? t("faqs.anonymous")
-                    : faq.authorName || t("faqs.student"),
+                  author: displayName,
                 })}
               </span>
             </div>
@@ -339,8 +344,8 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
               </form>
             ) : (
               <div className="p-3 bg-stone-50 border border-stone-200 rounded-lg text-center text-xs text-stone-500">
-                {canEdit
-                  ? "Authors cannot post replies to their own question."
+                {isStaff
+                  ? t("faqs.cantReplyOwn")
                   : t("faqs.staffOnlyReply")}
               </div>
             )}

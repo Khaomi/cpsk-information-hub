@@ -9,7 +9,6 @@ import {
   Contact,
   ContactStatus,
   fetchContacts,
-  setContactActive,
   deleteContact,
   subscribeToContacts,
 } from "@/src/lib/contacts";
@@ -122,7 +121,6 @@ export default function ContactsPage() {
             )}
           </div>
 
-          {/* Tags / Badges */}
           {/* Tags / Badges */}
           <div className="flex flex-wrap gap-1.5 my-2">
             {c.departmentOnly && <DepartmentOnlyBadge />}

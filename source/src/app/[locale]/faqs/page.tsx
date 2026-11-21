@@ -148,7 +148,7 @@ export default function FAQsPage() {
               isStaff || f.authorId === user?.id
                 ? `${f.authorName}`
                 : f.isAnonymous
-                ? "Anonymous Student"
+                ? t("faqs.anonymous")
                 : f.authorName;
 
             const canDelete = isStaff || (user && user.id === f.creatorId);

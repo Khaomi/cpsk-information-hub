@@ -32,10 +32,6 @@ export function formatDisplayDate(dateString: string | null): string {
   });
 }
 
-export function summarize(text: string, maxLength: number = 90): string {
-  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
-}
-
 async function attachRelations(supabase: SupabaseClient, rows: FaqViewRow[]): Promise<Faq[]> {
   const ids = rows.map((r) => r.id).filter((id): id is string => id !== null);
   const tagsByFaq = new Map<string, Tag[]>();
@@ -132,47 +128,6 @@ export async function setFaqResolved(id: string, isResolved: boolean): Promise<v
     .update({ status: isResolved ? "RESOLVED" : "ANSWERED" })
     .eq("id", id);
   if (error) throw error;
-}
-
-export type CreateFaqInput = {
-  question: string;
-  isAnonymous?: boolean;
-  tagIds?: string[];
-};
-
-export async function insertFaq(input: CreateFaqInput): Promise<string> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const { data: faq, error: faqError } = await supabase
-    .from("faqs")
-    .insert({
-      question: input.question,
-      is_anonymous: input.isAnonymous ?? true,
-      creator_id: user?.id ?? null,
-      status: "UNANSWERED",
-    })
-    .select("id")
-    .single();
-
-  if (faqError || !faq) {
-    throw new Error(faqError?.message || "Failed to create FAQ");
-  }
-
-  // 2. Attach tags if provided
-  if (input.tagIds && input.tagIds.length > 0) {
-    const tagRows = input.tagIds.map((tagId) => ({
-      faq_id: faq.id,
-      tag_id: tagId,
-    }));
-
-    const { error: tagError } = await supabase.from("faq_tag").insert(tagRows);
-    if (tagError) {
-      throw new Error(tagError.message);
-    }
-  }
-
-  return faq.id;
 }
 
 export function subscribeToFaqs(onChange: () => void) {
