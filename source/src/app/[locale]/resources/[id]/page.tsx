@@ -4,7 +4,6 @@ import { use, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/src/i18n/navigation";
 import { ArrowLeft } from "lucide-react";
-import FilterableLayout from "@/src/components/filterable-layout";
 import { formatDisplayDate } from "@/src/lib/announcements";
 import { ResourceLink, fetchResourceLinks, subscribeToResourceLinks } from "@/src/lib/resourceLinks";
 import { colorForTag } from "@/src/lib/tags";
@@ -50,27 +49,21 @@ export default function ResourceLinkDetailPage({ params }: Props) {
     };
   }, [id]);
 
-  // Send the user to the main feed with the chosen tags applied.
-  const handleApplyFilter = (selectedTags: string[]): void => {
-    const params = new URLSearchParams();
-    selectedTags.forEach((tag) => params.append("tag", tag));
-    router.push(`/?${params.toString()}`);
-  };
 
   if (loading) {
     return (
-      <FilterableLayout onApplyFilter={handleApplyFilter}>
+      <>
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
-      </FilterableLayout>
+      </>
     );
   }
 
   // Non-staff can only see ACTIVE items, same as the home feed.
   if (!resourceLink || (!isStaff && resourceLink.status !== "ACTIVE")) {
     return (
-      <FilterableLayout onApplyFilter={handleApplyFilter}>
+      <>
         <p className="text-sm text-stone-500">{t("announcements.notFound")}</p>
-      </FilterableLayout>
+      </>
     );
   }
 
@@ -78,16 +71,16 @@ export default function ResourceLinkDetailPage({ params }: Props) {
   const isSafeUrl = /^https?:\/\//i.test(resourceLink.url);
 
   return (
-    <FilterableLayout onApplyFilter={handleApplyFilter}>
+    <>
       <article>
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors"
+            className="flex min-w-0 items-center gap-2 text-left text-sm text-stone-500 hover:text-stone-800 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="font-medium text-stone-900">{resourceLink.title}</span>
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 font-medium text-stone-900 [overflow-wrap:anywhere]">{resourceLink.title}</span>
           </button>
         </div>
 
@@ -118,6 +111,6 @@ export default function ResourceLinkDetailPage({ params }: Props) {
           )}
         </p>
       </article>
-    </FilterableLayout>
+    </>
   );
 }
