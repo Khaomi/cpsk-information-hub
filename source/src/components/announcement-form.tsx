@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
-import { colorForTag, type Tag } from "@/src/lib/tags";
+import type { Tag } from "@/src/lib/tags";
 import { toDateTimeInputValue } from "@/src/lib/announcements";
 import { DepartmentOnlyField } from "@/src/components/department-only";
+import { FormField, inputClass } from "@/src/components/form-field";
+import { TagPicker } from "@/src/components/tag-picker";
 
 export type AnnouncementFormValues = {
   title: string;
@@ -21,13 +23,15 @@ export type AnnouncementFormValues = {
   departmentOnly: boolean;
 };
 
+type SaveStatus = "draft" | "published";
+
 type FormErrors = Partial<Record<"title" | "body" | "publishedDate" | "tags", string>>;
 
 type AnnouncementFormProps = {
   tags: Tag[];
   initialValues?: AnnouncementFormValues;
   initialImageUrl?: string | null;
-  onSubmit: (values: AnnouncementFormValues, status: "draft" | "published") => void;
+  onSubmit: (values: AnnouncementFormValues, status: SaveStatus) => void;
   onCancel: () => void;
   submitLabel?: string;
 };
@@ -43,6 +47,34 @@ const EMPTY_VALUES: AnnouncementFormValues = {
   departmentOnly: true,
 };
 
+// SRS-4 / SRS-5: title and body are always required. Published Date is
+// optional — leaving it blank while publishing means "publish now" (see
+// computeDates), so it only needs validating when the user did type one.
+// SRS-9: publishing specifically requires at least one tag; drafts don't.
+export function validateAnnouncementForm(
+  values: AnnouncementFormValues,
+  status: SaveStatus,
+  initialPublishedDate: string,
+  t: (key: string) => string,
+): FormErrors {
+  const errors: FormErrors = {};
+  if (!values.title.trim()) errors.title = t("form.errors.titleRequired");
+  if (!values.body.trim()) errors.body = t("form.errors.bodyRequired");
+  if (status === "published" && isNewPastDate(values.publishedDate, initialPublishedDate)) {
+    errors.publishedDate = t("form.errors.publishedDateFuture");
+  }
+  if (status === "published" && values.tagIds.length === 0) {
+    errors.tags = t("validation.selectTagBeforePublish");
+  }
+  return errors;
+}
+
+// Only re-check on an actual change — an already-past date left untouched
+// while editing an old published announcement is fine.
+function isNewPastDate(date: string, initialDate: string): boolean {
+  return Boolean(date) && date !== initialDate && new Date(date).getTime() < Date.now();
+}
+
 export default function AnnouncementForm({
   tags,
   initialValues = EMPTY_VALUES,
@@ -53,82 +85,18 @@ export default function AnnouncementForm({
   const t = useTranslations();
   const [values, setValues] = useState<AnnouncementFormValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [imagePreview, setImagePreview] = useState<string | null>(initialImageUrl);
   // Frozen at mount rather than recomputed every render, so the picker's
   // floor doesn't creep past a value the user already selected while typing.
   const [minPublishedDate] = useState<string>(() => toDateTimeInputValue(new Date().toISOString()));
-
-  // Revoke the previous object URL (if any) whenever the preview changes or
-  // the form unmounts, so picking several files in a row doesn't leak blobs.
-  useEffect(() => {
-    return () => {
-      if (imagePreview?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreview);
-      }
-    };
-  }, [imagePreview]);
 
   const update = <K extends keyof AnnouncementFormValues>(key: K, value: AnnouncementFormValues[K]): void => {
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0] ?? null;
-    update("imageFile", file);
-    update("removeImage", false);
-    setImagePreview(file ? URL.createObjectURL(file) : initialImageUrl);
-  };
-
-  const handleRemoveImage = (): void => {
-    update("imageFile", null);
-    update("removeImage", true);
-    setImagePreview(null);
-  };
-
-  const toggleTag = (tagId: string): void => {
-    setValues((prev) => ({
-      ...prev,
-      tagIds: prev.tagIds.includes(tagId)
-        ? prev.tagIds.filter((t) => t !== tagId)
-        : [...prev.tagIds, tagId],
-    }));
-  };
-
-  // SRS-4 / SRS-5: title and body are always required. Published Date is
-  // optional — leaving it blank while publishing means "publish now" (see
-  // computeDates), so it only needs validating when the user did type one.
-  const validateRequiredFields = (status: "draft" | "published"): FormErrors => {
-    const next: FormErrors = {};
-    if (!values.title.trim()) next.title = t("form.errors.titleRequired");
-    if (!values.body.trim()) next.body = t("form.errors.bodyRequired");
-    if (
-      status === "published" &&
-      values.publishedDate &&
-      // Only re-check on an actual change — an already-past date left
-      // untouched while editing an old published announcement is fine.
-      values.publishedDate !== initialValues.publishedDate &&
-      new Date(values.publishedDate).getTime() < Date.now()
-    ) {
-      next.publishedDate = t("form.errors.publishedDateFuture");
-    }
-    return next;
-  };
-
-  const handleSave = (status: "draft" | "published"): void => {
-    const fieldErrors = validateRequiredFields(status);
-
-    // SRS-9: publishing specifically requires at least one tag; drafts don't
-    if (status === "published" && values.tagIds.length === 0) {
-      fieldErrors.tags = t("validation.selectTagBeforePublish");
-    }
-
-    if (Object.keys(fieldErrors).length > 0) {
-      setErrors(fieldErrors);
-      return;
-    }
-
-    setErrors({});
-    onSubmit(values, status);
+  const handleSave = (status: SaveStatus): void => {
+    const fieldErrors = validateAnnouncementForm(values, status, initialValues.publishedDate, t);
+    setErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length === 0) onSubmit(values, status);
   };
 
   return (
@@ -143,132 +111,70 @@ export default function AnnouncementForm({
       </button>
 
       <div className="space-y-4">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-1">
-            {t("form.fields.title")} <span className="text-red-500">*</span>
-          </label>
+        <FormField id="title" label={t("form.fields.title")} required error={errors.title}>
           <input
             id="title"
             type="text"
             value={values.title}
             onChange={(e) => update("title", e.target.value)}
-            className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-              errors.title ? "border-red-400" : "border-stone-300"
-            }`}
+            className={inputClass(Boolean(errors.title))}
           />
-          {errors.title && <p className="text-xs text-red-600 mt-1">{errors.title}</p>}
-        </div>
+        </FormField>
 
-        <div>
-          <label htmlFor="body" className="block text-sm font-medium text-stone-700 mb-1">
-            {t("form.fields.body")} <span className="text-red-500">*</span>
-          </label>
+        <FormField id="body" label={t("form.fields.body")} required error={errors.body}>
           <textarea
             id="body"
             rows={5}
             value={values.body}
             onChange={(e) => update("body", e.target.value)}
-            className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-              errors.body ? "border-red-400" : "border-stone-300"
-            }`}
+            className={inputClass(Boolean(errors.body))}
           />
-          {errors.body && <p className="text-xs text-red-600 mt-1">{errors.body}</p>}
-        </div>
+        </FormField>
 
-        <div>
-          <label htmlFor="image" className="block text-sm font-medium text-stone-700 mb-1">
-            {t("form.fields.image")} <span className="text-stone-400 font-normal">{t("form.fields.imageOptional")}</span>
-          </label>
-          {imagePreview && (
-            <div className="mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                src={imagePreview}
-                alt=""
-                className="mb-2 max-h-48 rounded-md border border-stone-200 object-cover"
-              />
-            </div>
-          )}
-          <div className="flex items-center gap-3">
-            <input
-              id="image"
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              onChange={handleImageChange}
-              className="text-sm text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-stone-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-200"
-            />
-            {imagePreview && (
-              <button
-                type="button"
-                onClick={handleRemoveImage}
-                className="text-sm text-red-600 hover:text-red-800 font-medium"
-              >
-                {t("form.actions.remove")}
-              </button>
-            )}
-          </div>
-        </div>
+        <AnnouncementImageField
+          initialImageUrl={initialImageUrl}
+          onPick={(file) => setValues((prev) => ({ ...prev, imageFile: file, removeImage: false }))}
+          onRemove={() => setValues((prev) => ({ ...prev, imageFile: null, removeImage: true }))}
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="publishedDate" className="block text-sm font-medium text-stone-700 mb-1">
-              {t("form.fields.publishedDate")}{" "}
-              <span className="text-stone-400 font-normal">{t("form.fields.publishedDateOptional")}</span>
-            </label>
+          <FormField
+            id="publishedDate"
+            label={t("form.fields.publishedDate")}
+            hint={t("form.fields.publishedDateOptional")}
+            error={errors.publishedDate}
+          >
             <input
               id="publishedDate"
               type="datetime-local"
               value={values.publishedDate}
               min={minPublishedDate}
               onChange={(e) => update("publishedDate", e.target.value)}
-              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                errors.publishedDate ? "border-red-400" : "border-stone-300"
-              }`}
+              className={inputClass(Boolean(errors.publishedDate))}
             />
-            {errors.publishedDate && <p className="text-xs text-red-600 mt-1">{errors.publishedDate}</p>}
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="expiryDate" className="block text-sm font-medium text-stone-700 mb-1">
-              {t("form.fields.expiryDate")} <span className="text-stone-400 font-normal">{t("form.fields.expiryDateOptional")}</span>
-            </label>
+          <FormField id="expiryDate" label={t("form.fields.expiryDate")} hint={t("form.fields.expiryDateOptional")}>
             <input
               id="expiryDate"
               type="datetime-local"
               value={values.expiryDate}
               min={values.publishedDate || minPublishedDate}
               onChange={(e) => update("expiryDate", e.target.value)}
-              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className={inputClass(false)}
             />
-          </div>
+          </FormField>
         </div>
 
-        <fieldset>
-          <legend className="block text-sm font-medium text-stone-700 mb-1">
-            {t("form.fields.targetTags")} <span className="text-stone-400 font-normal">{t("form.fields.targetTagsRequired")}</span>
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {tags.length === 0 && <p className="text-xs text-stone-400">{t("form.noTagsAvailable")}</p>}
-            {tags.map((tag) => {
-              const selected = values.tagIds.includes(tag.id);
-              return (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => toggleTag(tag.id)}
-                  className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                    selected
-                      ? "bg-teal-600 border-teal-600 text-white"
-                      : `${colorForTag(tag)} border-transparent hover:border-teal-400`
-                  }`}
-                >
-                  {tag.name}
-                </button>
-              );
-            })}
-          </div>
-          {errors.tags && <p className="text-xs text-red-600 mt-1">{errors.tags}</p>}
-        </fieldset>
+        <TagPicker
+          legend={t("form.fields.targetTags")}
+          hint={t("form.fields.targetTagsRequired")}
+          tags={tags}
+          selectedIds={values.tagIds}
+          onChange={(ids) => update("tagIds", ids)}
+          emptyLabel={t("form.noTagsAvailable")}
+          error={errors.tags}
+        />
 
         <DepartmentOnlyField
           checked={values.departmentOnly}
@@ -293,5 +199,64 @@ export default function AnnouncementForm({
         </div>
       </div>
     </div>
+  );
+}
+
+type AnnouncementImageFieldProps = {
+  initialImageUrl: string | null;
+  onPick: (file: File | null) => void;
+  onRemove: () => void;
+};
+
+// Optional image: shows a preview of the current or newly picked file, with
+// a Remove button. Owns the preview URL so the form only tracks the file.
+function AnnouncementImageField({ initialImageUrl, onPick, onRemove }: AnnouncementImageFieldProps) {
+  const t = useTranslations();
+  const [imagePreview, setImagePreview] = useState<string | null>(initialImageUrl);
+
+  // Revoke the previous object URL (if any) whenever the preview changes or
+  // the form unmounts, so picking several files in a row doesn't leak blobs.
+  useEffect(() => {
+    return () => {
+      if (imagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0] ?? null;
+    onPick(file);
+    setImagePreview(file ? URL.createObjectURL(file) : initialImageUrl);
+  };
+
+  const handleRemove = (): void => {
+    onRemove();
+    setImagePreview(null);
+  };
+
+  return (
+    <FormField id="image" label={t("form.fields.image")} hint={t("form.fields.imageOptional")}>
+      {imagePreview && (
+        <div className="mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imagePreview} alt="" className="mb-2 max-h-48 rounded-md border border-stone-200 object-cover" />
+        </div>
+      )}
+      <div className="flex items-center gap-3">
+        <input
+          id="image"
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={handleChange}
+          className="text-sm text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-stone-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-200"
+        />
+        {imagePreview && (
+          <button type="button" onClick={handleRemove} className="text-sm text-red-600 hover:text-red-800 font-medium">
+            {t("form.actions.remove")}
+          </button>
+        )}
+      </div>
+    </FormField>
   );
 }

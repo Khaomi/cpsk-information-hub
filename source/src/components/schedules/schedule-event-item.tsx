@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { MapPin, Pencil, Trash2 } from "lucide-react";
 import { formatTimeRange, type ScheduleEvent } from "@/src/lib/schedules";
-import { colorForTag } from "@/src/lib/tags";
-import { DepartmentOnlyBadge } from "@/src/components/department-only";
+import { TagBadges } from "@/src/components/tag-badges";
+import { ConfirmButtons } from "@/src/components/confirm-buttons";
 
 type ScheduleEventItemProps = {
   event: ScheduleEvent;
@@ -19,59 +19,8 @@ type ScheduleEventItemProps = {
 
 export default function ScheduleEventItem({ event, canManage, onEdit, onDelete, onClick, highlight = false }: ScheduleEventItemProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState(false);
 
-  // On success the item unmounts (the page drops it from the list); on
-  // failure the confirm box stays open with a message so it can be retried.
-  const handleDelete = async (): Promise<void> => {
-    setDeleting(true);
-    setDeleteError(false);
-    try {
-      await onDelete(event.id);
-    } catch {
-      setDeleteError(true);
-      setDeleting(false);
-    }
-  };
-
-  const cancelDelete = (): void => {
-    setConfirmingDelete(false);
-    setDeleteError(false);
-  };
-
-  const body = (
-    <>
-      <span
-        className={`w-24 shrink-0 pt-0.5 text-xs font-medium tabular-nums ${highlight ? "text-orange-700" : "text-teal-700"}`}
-      >
-        {formatTimeRange(event)}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-semibold text-sm leading-snug">
-          {event.title}
-          {highlight && <span className="sr-only"> (happening now)</span>}
-        </span>
-        <span className="mt-0.5 flex items-center gap-1 text-xs text-stone-500">
-          <MapPin className="w-3 h-3 shrink-0" />
-          {event.location}
-        </span>
-        {event.description && (
-          <span className="mt-1 block text-sm text-stone-600 leading-relaxed whitespace-pre-line">{event.description}</span>
-        )}
-        {(event.tags.length > 0 || event.departmentOnly) && (
-          <span className="mt-1.5 flex flex-wrap gap-1">
-            {event.departmentOnly && <DepartmentOnlyBadge />}
-            {event.tags.map((tag) => (
-              <span key={tag.id} className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${colorForTag(tag)}`}>
-                {tag.name}
-              </span>
-            ))}
-          </span>
-        )}
-      </span>
-    </>
-  );
+  const body = <ScheduleEventBody event={event} highlight={highlight} />;
 
   return (
     <li className={`rounded-md border p-3 ${highlight ? "border-orange-300 bg-orange-50" : "border-stone-200 bg-white"}`}>
@@ -111,29 +60,71 @@ export default function ScheduleEventItem({ event, canManage, onEdit, onDelete, 
       </div>
 
       {canManage && confirmingDelete && (
-        <div className="mt-2 pt-2 border-t border-stone-100">
-          <p className="text-xs text-red-700 font-medium mb-2">Delete this event? This cannot be undone.</p>
-          {deleteError && <p className="text-xs text-red-600 mb-2">Could not delete the event. Please try again.</p>}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="text-xs font-medium bg-red-600 text-white rounded px-3 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-60"
-            >
-              Yes, delete
-            </button>
-            <button
-              type="button"
-              onClick={cancelDelete}
-              disabled={deleting}
-              className="text-xs font-medium border border-stone-300 rounded px-3 py-1.5 hover:bg-stone-50 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <DeleteEventConfirm onDelete={() => onDelete(event.id)} onCancel={() => setConfirmingDelete(false)} />
       )}
     </li>
+  );
+}
+
+// Time, title, location, description and tags of one event
+function ScheduleEventBody({ event, highlight }: { event: ScheduleEvent; highlight: boolean }) {
+  return (
+    <>
+      <span
+        className={`w-24 shrink-0 pt-0.5 text-xs font-medium tabular-nums ${highlight ? "text-orange-700" : "text-teal-700"}`}
+      >
+        {formatTimeRange(event)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-sm leading-snug">
+          {event.title}
+          {highlight && <span className="sr-only"> (happening now)</span>}
+        </span>
+        <span className="mt-0.5 flex items-center gap-1 text-xs text-stone-500">
+          <MapPin className="w-3 h-3 shrink-0" />
+          {event.location}
+        </span>
+        {event.description && (
+          <span className="mt-1 block text-sm text-stone-600 leading-relaxed whitespace-pre-line">{event.description}</span>
+        )}
+        {(event.tags.length > 0 || event.departmentOnly) && (
+          <span className="mt-1.5 flex flex-wrap gap-1">
+            <TagBadges tags={event.tags} departmentOnly={event.departmentOnly} textClassName="text-[11px]" />
+          </span>
+        )}
+      </span>
+    </>
+  );
+}
+
+// On success the item unmounts (the page drops it from the list); on
+// failure the confirm box stays open with a message so it can be retried.
+function DeleteEventConfirm({ onDelete, onCancel }: { onDelete: () => Promise<void>; onCancel: () => void }) {
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
+
+  const handleDelete = async (): Promise<void> => {
+    setDeleting(true);
+    setDeleteError(false);
+    try {
+      await onDelete();
+    } catch {
+      setDeleteError(true);
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 pt-2 border-t border-stone-100">
+      <p className="text-xs text-red-700 font-medium mb-2">Delete this event? This cannot be undone.</p>
+      {deleteError && <p className="text-xs text-red-600 mb-2">Could not delete the event. Please try again.</p>}
+      <ConfirmButtons
+        confirmLabel="Yes, delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDelete}
+        onCancel={onCancel}
+        disabled={deleting}
+      />
+    </div>
   );
 }

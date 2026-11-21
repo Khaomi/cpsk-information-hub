@@ -62,6 +62,40 @@ export function toDateTimeInputValue(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+export type AnnouncementScope = "all" | "mine";
+
+export type AnnouncementFilter = {
+  isStaff: boolean;
+  scope: AnnouncementScope;
+  userId: string | undefined;
+  query: string; // already trimmed and lower-cased
+  tagNames: string[]; // selected in the filter drawer; empty = no tag filter
+};
+
+// Which announcements the list shows: staff see their own ("mine") or every
+// non-draft one ("all"); everyone else sees only live (ACTIVE) ones.
+function isVisibleTo(a: Announcement, { isStaff, scope, userId }: AnnouncementFilter): boolean {
+  if (isStaff && scope === "mine") return a.creatorId === userId;
+  if (isStaff) return a.status !== "DRAFT";
+  return a.status === "ACTIVE";
+}
+
+// US-12: items whose tags include at least one selected tag.
+// US-16: case-insensitive keyword match on title/body (and tag names).
+function matchesSearch(a: Announcement, { query, tagNames }: AnnouncementFilter): boolean {
+  const matchesTags = tagNames.length === 0 || a.tags.some((tag) => tagNames.includes(tag.name));
+  const matchesQuery =
+    !query ||
+    a.title.toLowerCase().includes(query) ||
+    a.body.toLowerCase().includes(query) ||
+    a.tags.some((tag) => tag.name.toLowerCase().includes(query));
+  return matchesTags && matchesQuery;
+}
+
+export function filterAnnouncements(items: Announcement[], filter: AnnouncementFilter): Announcement[] {
+  return items.filter((a) => isVisibleTo(a, filter) && matchesSearch(a, filter));
+}
+
 async function attachRelations(supabase: SupabaseClient, rows: AnnouncementViewRow[]): Promise<Announcement[]> {
   const ids = rows.map((r) => r.id).filter((id): id is string => id !== null);
   const tagsByAnnouncement = new Map<string, Tag[]>();
@@ -155,15 +189,18 @@ type ComputedDates = {
 // now", so it falls back to the current time — but only while publishing.
 // A draft with no date typed has no schedule at all, so it stays null.
 function computeDates(values: AnnouncementFormValues, status: "draft" | "published"): ComputedDates {
+  const draft_ends_at = toIsoOrNull(values.expiryDate);
   if (status === "draft") {
-    const draft_starts_at = values.publishedDate ? new Date(values.publishedDate).toISOString() : null;
-    const draft_ends_at = values.expiryDate ? new Date(values.expiryDate).toISOString() : null;
-    return { starts_at: null, ends_at: null, draft_starts_at, draft_ends_at };
+    return { starts_at: null, ends_at: null, draft_starts_at: toIsoOrNull(values.publishedDate), draft_ends_at };
   }
 
-  const draft_starts_at = values.publishedDate ? new Date(values.publishedDate).toISOString() : new Date().toISOString();
-  const draft_ends_at = values.expiryDate ? new Date(values.expiryDate).toISOString() : null;
+  const draft_starts_at = toIsoOrNull(values.publishedDate) ?? new Date().toISOString();
   return { starts_at: draft_starts_at, ends_at: draft_ends_at, draft_starts_at, draft_ends_at };
+}
+
+// "" (field left blank) -> null, otherwise the datetime-local value as ISO
+function toIsoOrNull(value: string): string | null {
+  return value ? new Date(value).toISOString() : null;
 }
 
 async function uploadAnnouncementImage(supabase: SupabaseClient, file: File, creatorId: string): Promise<string> {
@@ -185,6 +222,20 @@ async function uploadAnnouncementImage(supabase: SupabaseClient, file: File, cre
   if (error) throw error;
 
   return data.id as string;
+}
+
+// Uploads a newly picked image and links it to the announcement
+async function attachAnnouncementImage(
+  supabase: SupabaseClient,
+  announcementId: string,
+  file: File,
+  uploaderId: string,
+): Promise<void> {
+  const attachmentId = await uploadAnnouncementImage(supabase, file, uploaderId);
+  const { error } = await supabase
+    .from("announcement_attachment")
+    .insert({ announcement_id: announcementId, attachment_id: attachmentId });
+  if (error) throw error;
 }
 
 // Unlinks and fully deletes any image currently attached to an announcement
@@ -254,11 +305,7 @@ export async function insertAnnouncement(
   await syncTags(supabase, data.id, values.tagIds);
 
   if (values.imageFile) {
-    const attachmentId = await uploadAnnouncementImage(supabase, values.imageFile, creatorId);
-    const { error: linkError } = await supabase
-      .from("announcement_attachment")
-      .insert({ announcement_id: data.id, attachment_id: attachmentId });
-    if (linkError) throw linkError;
+    await attachAnnouncementImage(supabase, data.id, values.imageFile, creatorId);
   }
 
   return data.id;
@@ -293,11 +340,7 @@ export async function updateAnnouncement(
   }
 
   if (values.imageFile) {
-    const attachmentId = await uploadAnnouncementImage(supabase, values.imageFile, editorId);
-    const { error: linkError } = await supabase
-      .from("announcement_attachment")
-      .insert({ announcement_id: id, attachment_id: attachmentId });
-    if (linkError) throw linkError;
+    await attachAnnouncementImage(supabase, id, values.imageFile, editorId);
   }
 }
 
