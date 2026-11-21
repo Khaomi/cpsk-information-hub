@@ -32,6 +32,7 @@ export default function ContactsPage() {
   const [items, setItems] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState<"all" | "mine">("all");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [confirming, setConfirming] = useState<{ id: string; type: "delete" } | null>(null);
   const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
 
@@ -71,10 +72,8 @@ export default function ContactsPage() {
         ? items.filter((c) => c.status !== "DRAFT")
         : items.filter((c) => c.status === "ACTIVE")
   ).filter((c) =>
-
-    query
-      ? c.name.toLowerCase().includes(query) || (c.email ?? "").toLowerCase().includes(query)
-      : true
+    (selectedTags.length === 0 || c.tags.some((tag) => selectedTags.includes(tag.name))) &&
+    (query ? c.name.toLowerCase().includes(query) || (c.email ?? "").toLowerCase().includes(query) : true)
   );
 
   const lecturers = visibleItems.filter((c) => c.roleType === "LECTURER");
@@ -92,7 +91,7 @@ export default function ContactsPage() {
   };
 
   const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
+    setSelectedTags(selectedTags);
   };
 
   const renderContactCard = (c: Contact) => (
