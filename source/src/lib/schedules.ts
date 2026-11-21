@@ -99,6 +99,12 @@ export function getCurrentMoment(): CurrentMoment {
   return { dateKey: toDateKey(now), time: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
 }
 
+// True if the event would start before `now` ("YYYY-MM-DD" and "HH:MM"
+// strings both compare correctly as text)
+export function startsInPast(date: string, startTime: string, now: CurrentMoment): boolean {
+  return date < now.dateKey || (date === now.dateKey && startTime < now.time);
+}
+
 // True while the event is in progress (start inclusive, end exclusive)
 export function isHappeningNow(event: ScheduleEvent, now: CurrentMoment): boolean {
   return event.date === now.dateKey && event.startTime <= now.time && now.time < event.endTime;
@@ -111,6 +117,47 @@ export function compareByStartTime(a: ScheduleEvent, b: ScheduleEvent): number {
     a.endTime.localeCompare(b.endTime) ||
     a.title.localeCompare(b.title)
   );
+}
+
+export type MonthView = { year: number; month: number }; // month is 0-11
+
+// The calendar month a "YYYY-MM-DD" key falls in
+export function monthViewOf(key: string): MonthView {
+  const d = parseDateKey(key);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+export type EventsByDate = Record<string, ScheduleEvent[]>;
+
+// Tag filter from the drawer (same rule as the home feed, US-12) plus
+// keyword search on event name and description only
+function matchesScheduleFilter(event: ScheduleEvent, tagNames: string[], query: string): boolean {
+  const matchesTags = tagNames.length === 0 || event.tags.some((tag) => tagNames.includes(tag.name));
+  const matchesQuery =
+    !query || event.title.toLowerCase().includes(query) || (event.description ?? "").toLowerCase().includes(query);
+  return matchesTags && matchesQuery;
+}
+
+// Events that pass the filters, grouped by day, each day sorted by start time
+export function groupVisibleEventsByDate(events: ScheduleEvent[], tagNames: string[], query: string): EventsByDate {
+  const map: EventsByDate = {};
+  for (const event of events) {
+    if (matchesScheduleFilter(event, tagNames, query)) (map[event.date] ??= []).push(event);
+  }
+  for (const list of Object.values(map)) list.sort(compareByStartTime);
+  return map;
+}
+
+// Where to jump when a search starts matching: stay on the selected day if
+// it has a match, otherwise the next upcoming matching day, or the latest
+// past one if none are ahead. null when nothing matches.
+export function pickSearchJumpTarget(eventsByDate: EventsByDate, selectedKey: string, todayKey: string): string | null {
+  const matchingKeys = Object.keys(eventsByDate)
+    .filter((key) => eventsByDate[key]?.length)
+    .sort();
+  if (matchingKeys.length === 0) return null;
+  if (eventsByDate[selectedKey]?.length) return selectedKey;
+  return matchingKeys.find((key) => key >= todayKey) ?? matchingKeys[matchingKeys.length - 1];
 }
 
 // ---- Supabase ----

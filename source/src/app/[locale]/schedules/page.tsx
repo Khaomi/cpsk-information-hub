@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo ,useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRole } from "@/src/components/role-context";
 import { useSearchParams } from "next/navigation";
 import FilterableLayout from "@/src/components/filterable-layout";
@@ -13,22 +13,96 @@ import ScheduleFormModal, {
 } from "@/src/components/schedules/schedule-form-modal";
 import {
   CurrentMoment,
+  EventsByDate,
+  MonthView,
   ScheduleEvent,
   ScheduleEventInput,
-  compareByStartTime,
   deleteSchedule,
   fetchSchedules,
   getComingUpKeys,
   getCurrentMoment,
   getTodayKey,
+  groupVisibleEventsByDate,
   insertSchedule,
-  parseDateKey,
+  monthViewOf,
+  pickSearchJumpTarget,
   subscribeToSchedules,
   updateSchedule,
 } from "@/src/lib/schedules";
 import { fetchTags, type Tag } from "@/src/lib/tags";
 
 type FormState = { mode: "create" } | { mode: "edit"; event: ScheduleEvent } | null;
+
+// Events are created from the header's "+ New" → /new → "Schedule", which
+// links to /schedules?new=1. Reads the param once, then drops it from the URL
+// so a refresh or Back doesn't open the form again. window.location is used
+// rather than useSearchParams, which would need a Suspense boundary for the build.
+function consumeCreateRequest(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("new") !== "1") return false;
+
+  params.delete("new");
+  const query = params.toString();
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+  );
+  return true;
+}
+
+// "Coming up" list for the selected day: only the days that have events
+function comingUpDaysFor(selectedKey: string, eventsByDate: EventsByDate): ComingUpDay[] {
+  if (!selectedKey) return [];
+  return getComingUpKeys(selectedKey)
+    .filter((key) => eventsByDate[key]?.length)
+    .map((key) => ({ dateKey: key, events: eventsByDate[key] }));
+}
+
+// Jump to a matching day when the search term changes. Remembers which query
+// it already jumped for, so later changes (clicking another day, live
+// updates) don't pull the selection back. This runs during render, guarded
+// so it settles after one extra pass, instead of in an effect.
+function useJumpToSearchMatch(
+  query: string,
+  eventsByDate: EventsByDate,
+  selectedKey: string,
+  todayKey: string,
+  selectDay: (key: string) => void,
+): void {
+  const [jumpedQuery, setJumpedQuery] = useState("");
+
+  if (!query && jumpedQuery !== "") {
+    setJumpedQuery("");
+  } else if (query && query !== jumpedQuery && selectedKey && todayKey) {
+    // No matches yet: leave jumpedQuery alone so it retries when data arrives.
+    const target = pickSearchJumpTarget(eventsByDate, selectedKey, todayKey);
+    if (target) {
+      setJumpedQuery(query);
+      // Also re-syncs the calendar to that day's month.
+      selectDay(target);
+    }
+  }
+}
+
+// Two equal columns once the content area is at least 36rem wide, with the
+// calendar on the left; narrower, the calendar comes first, then the selected
+// day, then "Coming up". This uses the content area's width (@container), not
+// the screen's, because the filter sidebar takes space from md up. In two
+// columns the right one is taken out of flow (absolute), so the calendar alone
+// sets the row height and the lists scroll inside that height.
+function ScheduleColumns({ calendar, children }: { calendar: ReactNode; children: ReactNode }) {
+  return (
+    <div className="@container">
+      <div className="grid grid-cols-1 @xl:grid-cols-2 gap-4">
+        <div className="min-w-0">{calendar}</div>
+        <div className="min-w-0 @xl:relative">
+          <div className="flex flex-col gap-4 @xl:absolute @xl:inset-0 @xl:overflow-y-auto">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function SchedulesPage() {
   // This only hides the controls; the real staff-only check is the RLS
@@ -42,43 +116,27 @@ export default function SchedulesPage() {
   const [loadError, setLoadError] = useState(false);
   const [todayKey, setTodayKey] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
-  const [view, setView] = useState({ year: 0, month: 0 });
+  const [view, setView] = useState<MonthView>({ year: 0, month: 0 });
   const [form, setForm] = useState<FormState>(null);
   const [now, setNow] = useState<CurrentMoment | null>(null);
   const [tags, setTags] = useState<Tag[]>([]);
   // Tag names chosen in the filter drawer; empty means show every event
   const [filterTags, setFilterTags] = useState<string[]>([]);
-  // Set when the page was opened as /schedules?new=1 (see below)
+  // Set when the page was opened as /schedules?new=1 (see consumeCreateRequest)
   const [createRequested, setCreateRequested] = useState(false);
 
   useEffect(() => {
-    // Events are created from the header's "+ New" → /new → "Schedule",
-    // which links to /schedules?new=1. Read the param once, then drop it from
-    // the URL so a refresh or Back doesn't open the form again.
-    // window.location is used rather than useSearchParams, which would need
-    // a Suspense boundary for the build.
-    const params = new URLSearchParams(window.location.search);
-    const wantsCreate = params.get("new") === "1";
-    if (wantsCreate) {
-      params.delete("new");
-      const query = params.toString();
-      window.history.replaceState(
-        window.history.state,
-        "",
-        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
-      );
-    }
+    const wantsCreate = consumeCreateRequest();
 
     fetchSchedules()
       .then((list) => {
         // "Today" is read on the client after mount rather than during render,
         // so a page prerendered on another day can't mismatch on hydration.
         const today = getTodayKey();
-        const d = parseDateKey(today);
         setItems(list);
         setTodayKey(today);
         setSelectedKey(today);
-        setView({ year: d.getFullYear(), month: d.getMonth() });
+        setView(monthViewOf(today));
         setNow(getCurrentMoment());
         // Only ever switch it on: in dev, Strict Mode runs this effect twice,
         // and the second run no longer sees ?new=1 (the first removed it), so
@@ -117,28 +175,7 @@ export default function SchedulesPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const eventsByDate = useMemo(() => {
-    const map: Record<string, ScheduleEvent[]> = {};
-
-    const visible = items.filter((e) => {
-      // Tag filter from the drawer (same rule as the home feed, US-12)
-      const matchesTags = filterTags.length === 0 || e.tags.some((tag) => filterTags.includes(tag.name));
-
-      // Keyword search: event name and description only
-      const matchesQuery =
-        !query ||
-        e.title.toLowerCase().includes(query) ||
-        (e.description ?? "").toLowerCase().includes(query);
-
-      return matchesTags && matchesQuery;
-    });
-
-    for (const event of visible) {
-      (map[event.date] ??= []).push(event);
-    }
-    for (const list of Object.values(map)) list.sort(compareByStartTime);
-    return map;
-  }, [items, filterTags, query]);
+  const eventsByDate = useMemo(() => groupVisibleEventsByDate(items, filterTags, query), [items, filterTags, query]);
 
   const eventCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -146,46 +183,13 @@ export default function SchedulesPage() {
     return counts;
   }, [eventsByDate]);
 
-  const comingUpDays: ComingUpDay[] = selectedKey
-    ? getComingUpKeys(selectedKey)
-        .filter((key) => eventsByDate[key]?.length)
-        .map((key) => ({ dateKey: key, events: eventsByDate[key] }))
-    : [];
-
   // Selecting a day also moves the calendar to that day's month
   const selectDay = (key: string): void => {
-    const d = parseDateKey(key);
     setSelectedKey(key);
-    setView({ year: d.getFullYear(), month: d.getMonth() });
+    setView(monthViewOf(key));
   };
 
-  // Jump to a matching day when the search term changes. Remembers which query
-  // it already jumped for, so later changes (clicking another day, live
-  // updates) don't pull the selection back. This runs during render, guarded
-  // so it settles after one extra pass, instead of in an effect.
-  const [jumpedQuery, setJumpedQuery] = useState("");
-
-  if (!query && jumpedQuery !== "") {
-    setJumpedQuery("");
-  } else if (query && query !== jumpedQuery && selectedKey && todayKey) {
-    const matchingKeys = Object.keys(eventsByDate)
-      .filter((key) => eventsByDate[key]?.length)
-      .sort();
-
-    // No matches yet: leave jumpedQuery alone so it retries when data arrives.
-    if (matchingKeys.length > 0) {
-      setJumpedQuery(query);
-
-      // Stay on the current day if it already matches, otherwise go to the next
-      // upcoming match, or the latest past one if none are ahead.
-      const target = eventsByDate[selectedKey]?.length
-        ? selectedKey
-        : (matchingKeys.find((key) => key >= todayKey) ?? matchingKeys[matchingKeys.length - 1]);
-
-      // Also re-syncs the calendar to that day's month.
-      selectDay(target);
-    }
-  }
+  useJumpToSearchMatch(query, eventsByDate, selectedKey, todayKey, selectDay);
 
   const shiftMonth = (delta: number): void => {
     setView((prev) => {
@@ -236,16 +240,8 @@ export default function SchedulesPage() {
       ) : loading || !selectedKey || !now ? (
         <p className="text-sm text-stone-500">Loading...</p>
       ) : (
-        // Two equal columns once the content area is at least 36rem wide, with
-        // the calendar on the left; narrower, the calendar comes first, then the
-        // selected day, then "Coming up". This uses the content area's width
-        // (@container), not the screen's, because the filter sidebar takes
-        // space from md up. In two columns the right one is taken out of flow
-        // (absolute), so the calendar alone sets the row height and the lists
-        // scroll inside that height.
-        <div className="@container">
-        <div className="grid grid-cols-1 @xl:grid-cols-2 gap-4">
-          <div className="min-w-0">
+        <ScheduleColumns
+          calendar={
             <ScheduleCalendar
               year={view.year}
               month={view.month}
@@ -256,30 +252,25 @@ export default function SchedulesPage() {
               onPrevMonth={() => shiftMonth(-1)}
               onNextMonth={() => shiftMonth(1)}
             />
-          </div>
-
-          <div className="min-w-0 @xl:relative">
-            <div className="flex flex-col gap-4 @xl:absolute @xl:inset-0 @xl:overflow-y-auto">
-            <ScheduleDayList
-              dateKey={selectedKey}
-              isToday={selectedKey === todayKey}
-              events={eventsByDate[selectedKey] ?? []}
-              now={now}
-              canManage={isStaff}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-            <ScheduleComingUp
-              days={comingUpDays}
-              canManage={isStaff}
-              onSelectDay={selectDay}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-            </div>
-          </div>
-        </div>
-        </div>
+          }
+        >
+          <ScheduleDayList
+            dateKey={selectedKey}
+            isToday={selectedKey === todayKey}
+            events={eventsByDate[selectedKey] ?? []}
+            now={now}
+            canManage={isStaff}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          <ScheduleComingUp
+            days={comingUpDaysFor(selectedKey, eventsByDate)}
+            canManage={isStaff}
+            onSelectDay={selectDay}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </ScheduleColumns>
       )}
 
       {isStaff && activeForm && (

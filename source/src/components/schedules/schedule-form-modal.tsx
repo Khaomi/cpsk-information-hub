@@ -2,9 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { isValidDateKey, type ScheduleEvent, type ScheduleEventInput } from "@/src/lib/schedules";
-import { colorForTag, type Tag } from "@/src/lib/tags";
+import {
+  getCurrentMoment,
+  getTodayKey,
+  isValidDateKey,
+  startsInPast,
+  type ScheduleEvent,
+  type ScheduleEventInput,
+} from "@/src/lib/schedules";
+import type { Tag } from "@/src/lib/tags";
 import { DepartmentOnlyField } from "@/src/components/department-only";
+import { FormField, inputClass } from "@/src/components/form-field";
+import { TagPicker } from "@/src/components/tag-picker";
 
 // Every field is a plain string while editing; empty optional fields become
 // null only when submitted (see toInput).
@@ -55,7 +64,8 @@ export function scheduleFormValuesFrom(event: ScheduleEvent): ScheduleFormValues
   };
 }
 
-function validate(values: ScheduleFormValues): FormErrors {
+// savedValues: what the event had before editing, or null for a new event
+function validate(values: ScheduleFormValues, savedValues: ScheduleFormValues | null): FormErrors {
   const next: FormErrors = {};
   if (!values.title.trim()) next.title = "Event name is required.";
   if (!values.date) next.date = "Date is required.";
@@ -67,7 +77,25 @@ function validate(values: ScheduleFormValues): FormErrors {
     next.endTime = "End time must be after the start time.";
   }
   if (!values.location.trim()) next.location = "Location is required.";
+  if (!next.date && !next.startTime) {
+    Object.assign(next, pastStartError(values, savedValues));
+  }
   return next;
+}
+
+// Same rule as the announcement's Published Date: an event can't be set to
+// start in the past. A new event is always checked (its date is pre-filled
+// from the selected day, which may be in the past). An existing event is only
+// re-checked when its date or start time actually changed, so one that
+// already happened can still be edited (e.g. to fix a typo) without moving it.
+function pastStartError(values: ScheduleFormValues, savedValues: ScheduleFormValues | null): FormErrors {
+  const changed =
+    !savedValues || values.date !== savedValues.date || values.startTime !== savedValues.startTime;
+  const now = getCurrentMoment();
+  if (!changed || !startsInPast(values.date, values.startTime, now)) return {};
+  return values.date < now.dateKey
+    ? { date: "Date can't be in the past." }
+    : { startTime: "Start time has already passed." };
 }
 
 function toInput(values: ScheduleFormValues): ScheduleEventInput {
@@ -83,10 +111,16 @@ function toInput(values: ScheduleFormValues): ScheduleEventInput {
   };
 }
 
-const inputClass = (hasError: boolean): string =>
-  `w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-    hasError ? "border-red-400" : "border-stone-300"
-  }`;
+// Closes the modal when Escape is pressed anywhere on the page
+function useEscapeKey(onEscape: () => void): void {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") onEscape();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onEscape]);
+}
 
 export default function ScheduleFormModal({ mode, initialValues, tags, onSubmit, onCancel }: ScheduleFormModalProps) {
   const [values, setValues] = useState<ScheduleFormValues>(initialValues);
@@ -94,18 +128,15 @@ export default function ScheduleFormModal({ mode, initialValues, tags, onSubmit,
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  // Frozen at mount (like the announcement form) so the picker's floor
+  // doesn't move while the modal is open
+  const [minDate] = useState<string>(() => getTodayKey());
 
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onCancel]);
+  useEscapeKey(onCancel);
 
   const update = <K extends keyof ScheduleFormValues>(key: K, value: ScheduleFormValues[K]): void => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -118,16 +149,17 @@ export default function ScheduleFormModal({ mode, initialValues, tags, onSubmit,
     });
   };
 
-  const toggleTag = (tagId: string): void => {
-    setValues((prev) => ({
-      ...prev,
-      tagIds: prev.tagIds.includes(tagId) ? prev.tagIds.filter((id) => id !== tagId) : [...prev.tagIds, tagId],
-    }));
-  };
+  // value, change handler and error styling for a field that can fail validation
+  const bind = (key: keyof FormErrors) => ({
+    value: values[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => update(key, e.target.value),
+    "aria-invalid": Boolean(errors[key]),
+    className: inputClass(Boolean(errors[key])),
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    const fieldErrors = validate(values);
+    const fieldErrors = validate(values, mode === "edit" ? initialValues : null);
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
       return;
@@ -173,88 +205,34 @@ export default function ScheduleFormModal({ mode, initialValues, tags, onSubmit,
         <form noValidate onSubmit={handleSubmit} className="p-4 space-y-4">
           {submitError && <p className="text-sm text-red-600">{submitError}</p>}
 
-          <div>
-            <label htmlFor="schedule-title" className="block text-sm font-medium text-stone-700 mb-1">
-              Event name <span className="text-red-500">*</span>
-            </label>
+          <FormField id="schedule-title" label="Event name" required error={errors.title}>
             <input
               id="schedule-title"
               ref={titleRef}
               type="text"
-              value={values.title}
-              onChange={(e) => update("title", e.target.value)}
-              aria-invalid={Boolean(errors.title)}
-              className={inputClass(Boolean(errors.title))}
+              {...bind("title")}
             />
-            {errors.title && <p className="text-xs text-red-600 mt-1">{errors.title}</p>}
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="schedule-date" className="block text-sm font-medium text-stone-700 mb-1">
-              Date <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="schedule-date"
-              type="date"
-              value={values.date}
-              onChange={(e) => update("date", e.target.value)}
-              aria-invalid={Boolean(errors.date)}
-              className={inputClass(Boolean(errors.date))}
-            />
-            {errors.date && <p className="text-xs text-red-600 mt-1">{errors.date}</p>}
-          </div>
+          <FormField id="schedule-date" label="Date" required error={errors.date}>
+            <input id="schedule-date" type="date" min={minDate} {...bind("date")} />
+          </FormField>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="schedule-start" className="block text-sm font-medium text-stone-700 mb-1">
-                Start time <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="schedule-start"
-                type="time"
-                value={values.startTime}
-                onChange={(e) => update("startTime", e.target.value)}
-                aria-invalid={Boolean(errors.startTime)}
-                className={inputClass(Boolean(errors.startTime))}
-              />
-              {errors.startTime && <p className="text-xs text-red-600 mt-1">{errors.startTime}</p>}
-            </div>
+            <FormField id="schedule-start" label="Start time" required error={errors.startTime}>
+              <input id="schedule-start" type="time" {...bind("startTime")} />
+            </FormField>
 
-            <div>
-              <label htmlFor="schedule-end" className="block text-sm font-medium text-stone-700 mb-1">
-                End time <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="schedule-end"
-                type="time"
-                value={values.endTime}
-                onChange={(e) => update("endTime", e.target.value)}
-                aria-invalid={Boolean(errors.endTime)}
-                className={inputClass(Boolean(errors.endTime))}
-              />
-              {errors.endTime && <p className="text-xs text-red-600 mt-1">{errors.endTime}</p>}
-            </div>
+            <FormField id="schedule-end" label="End time" required error={errors.endTime}>
+              <input id="schedule-end" type="time" {...bind("endTime")} />
+            </FormField>
           </div>
 
-          <div>
-            <label htmlFor="schedule-location" className="block text-sm font-medium text-stone-700 mb-1">
-              Location <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="schedule-location"
-              type="text"
-              value={values.location}
-              onChange={(e) => update("location", e.target.value)}
-              aria-invalid={Boolean(errors.location)}
-              className={inputClass(Boolean(errors.location))}
-            />
-            {errors.location && <p className="text-xs text-red-600 mt-1">{errors.location}</p>}
-          </div>
+          <FormField id="schedule-location" label="Location" required error={errors.location}>
+            <input id="schedule-location" type="text" {...bind("location")} />
+          </FormField>
 
-          <div>
-            <label htmlFor="schedule-description" className="block text-sm font-medium text-stone-700 mb-1">
-              Description <span className="text-stone-400 font-normal">(optional)</span>
-            </label>
+          <FormField id="schedule-description" label="Description" hint="(optional)">
             <textarea
               id="schedule-description"
               rows={3}
@@ -262,34 +240,16 @@ export default function ScheduleFormModal({ mode, initialValues, tags, onSubmit,
               onChange={(e) => update("description", e.target.value)}
               className={inputClass(false)}
             />
-          </div>
+          </FormField>
 
-          <fieldset>
-            <legend className="block text-sm font-medium text-stone-700 mb-1">
-              Tags <span className="text-stone-400 font-normal">(optional)</span>
-            </legend>
-            <div className="flex flex-wrap gap-2">
-              {tags.length === 0 && <p className="text-xs text-stone-400">No tags available.</p>}
-              {tags.map((tag) => {
-                const selected = values.tagIds.includes(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    aria-pressed={selected}
-                    className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                      selected
-                        ? "bg-teal-600 border-teal-600 text-white"
-                        : `${colorForTag(tag)} border-transparent hover:border-teal-400`
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
+          <TagPicker
+            legend="Tags"
+            hint="(optional)"
+            tags={tags}
+            selectedIds={values.tagIds}
+            onChange={(ids) => update("tagIds", ids)}
+            emptyLabel="No tags available."
+          />
 
           <DepartmentOnlyField
             checked={values.departmentOnly}
