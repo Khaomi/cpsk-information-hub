@@ -50,19 +50,20 @@ export default function ContactDetailPage({ params }: Props) {
     };
   }, [id]);
 
-  const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
-  };
 
   if (loading) {
     return (
-      <p className="text-sm text-stone-500">{t("common.loading")}</p>
+      <>
+        <p className="text-sm text-stone-500">{t("common.loading")}</p>
+      </>
     );
   }
 
   if (!contact) {
     return (
-      <p className="text-sm text-stone-500">{t("contacts.notfound")}</p>
+      <>
+        <p className="text-sm text-stone-500">{t("contacts.notfound")}</p>
+      </>
     );
   }
 
