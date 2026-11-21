@@ -9,6 +9,8 @@ ARG NODE_VERSION=24.20.0-slim
 
 FROM node:${NODE_VERSION} AS dependencies
 
+RUN apk add --no-cache libatomic
+
 # Set working directory
 WORKDIR /app
 
