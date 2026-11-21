@@ -277,24 +277,6 @@ export async function updateContact(
   }
 }
 
-export async function setContactActive(id: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("contact")
-    .update({ status: "ACTIVE" })
-    .eq("id", id);
-  if (error) throw error;
-}
-
-export async function setContactArchived(id: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("contact")
-    .update({ status: "ARCHIVED" })
-    .eq("id", id);
-  if (error) throw error;
-}
-
 export async function deleteContact(id: string): Promise<void> {
   const supabase = createClient();
   await clearContactImage(supabase, id);

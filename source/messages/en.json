@@ -161,6 +161,7 @@
     "replyPlaceholder": "Write an official staff response or reply...",
     "postReply": "Post Reply",
     "staffOnlyReply": "Only staff members can post replies to questions.",
+    "cantReplyOwn": "Authors cannot post replies to their own question.",
     "actions": {
       "answer": "Answer",
       "markAsResolved": "Mark as Resolved",
