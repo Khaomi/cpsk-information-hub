@@ -10,8 +10,7 @@ ARG NODE_VERSION=24.20.0-slim
 FROM node:${NODE_VERSION} AS dependencies
 
 RUN apt update \
-    && apt install -y --no-install-recommends libatomic1 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt install -y --no-install-recommends libatomic1
 
 # Set working directory
 WORKDIR /app
@@ -43,8 +42,7 @@ FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
 
 RUN apt update \
-    && apt install -y --no-install-recommends libatomic1 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt install -y --no-install-recommends libatomic1
 
 # Copy project dependencies from dependencies stage
 COPY --from=dependencies /app/node_modules ./node_modules
@@ -93,8 +91,7 @@ FROM node:${NODE_VERSION} AS runner
 WORKDIR /app
 
 RUN apt update \
-    && apt install -y --no-install-recommends libatomic1 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt install -y --no-install-recommends libatomic1
 
 # Set production environment variables
 ENV NODE_ENV=production
