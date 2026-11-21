@@ -199,6 +199,8 @@ export default function Header() {
             >
               <Search className="w-4 h-4 text-stone-700" />
             </button>
+            {/* Only list pages have a filter panel — detail pages don't. */}
+            {SEARCHABLE_PATHS.includes(pathname) && (
             <button
               type="button"
               onClick={openMobileFilters}
@@ -207,6 +209,7 @@ export default function Header() {
             >
               <SlidersHorizontal className="w-4 h-4 text-stone-700" />
             </button>
+            )}
           </form>
         </div>
 

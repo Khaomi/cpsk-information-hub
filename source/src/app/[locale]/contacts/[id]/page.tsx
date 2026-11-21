@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Contact,
   fetchContactById,
@@ -51,28 +50,25 @@ export default function ContactDetailPage({ params }: Props) {
     };
   }, [id]);
 
-  const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
-  };
 
   if (loading) {
     return (
-      <FilterableLayout onApplyFilter={handleApplyFilter}>
+      <>
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
-      </FilterableLayout>
+      </>
     );
   }
 
   if (!contact) {
     return (
-      <FilterableLayout onApplyFilter={handleApplyFilter}>
+      <>
         <p className="text-sm text-stone-500">{t("contacts.notfound")}</p>
-      </FilterableLayout>
+      </>
     );
   }
 
   return (
-    <FilterableLayout onApplyFilter={handleApplyFilter}>
+    <>
       <article className="bg-white border border-stone-200 rounded-lg p-6">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <button
@@ -147,6 +143,6 @@ export default function ContactDetailPage({ params }: Props) {
           </div>
         )}
       </article>
-    </FilterableLayout>
+    </>
   );
 }

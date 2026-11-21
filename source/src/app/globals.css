@@ -67,5 +67,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Let one very long unbroken word or URL wrap onto the next line,
+       instead of running past the edge and adding a sideways scrollbar. */
+    overflow-wrap: break-word;
   }
 }

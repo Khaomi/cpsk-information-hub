@@ -4,7 +4,6 @@ import { use, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/src/i18n/navigation";
 import { ArrowLeft } from "lucide-react";
-import FilterableLayout from "@/src/components/filterable-layout";
 import {
   Announcement,
   deleteAnnouncement,
@@ -62,23 +61,20 @@ export default function AnnouncementDetailPage({ params }: Props) {
     };
   }, [id]);
 
-  const handleApplyFilter = (selectedTags: string[]): void => {
-    console.log("Applying filter:", selectedTags);
-  };
 
   if (loading) {
     return (
-      <FilterableLayout onApplyFilter={handleApplyFilter}>
+      <>
         <p className="text-sm text-stone-500">{t("common.loading")}</p>
-      </FilterableLayout>
+      </>
     );
   }
 
   if (!announcement) {
     return (
-      <FilterableLayout onApplyFilter={handleApplyFilter}>
+      <>
         <p className="text-sm text-stone-500">{t("announcements.notFound")}</p>
-      </FilterableLayout>
+      </>
     );
   }
 
@@ -107,7 +103,7 @@ export default function AnnouncementDetailPage({ params }: Props) {
   };
 
   return (
-    <FilterableLayout onApplyFilter={handleApplyFilter}>
+    <>
       <article>
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           {/* router.back() uses real browser history — if you arrived from Main,
@@ -116,10 +112,10 @@ export default function AnnouncementDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 transition-colors"
+            className="flex min-w-0 items-center gap-2 text-left text-sm text-stone-500 hover:text-stone-800 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="font-medium text-stone-900">{announcement.title}</span>
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 font-medium text-stone-900 [overflow-wrap:anywhere]">{announcement.title}</span>
           </button>
 
           {isStaff && (
@@ -252,6 +248,6 @@ export default function AnnouncementDetailPage({ params }: Props) {
 
         <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-line mb-4">{announcement.body}</p>
       </article>
-    </FilterableLayout>
+    </>
   );
 }
