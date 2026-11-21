@@ -3,7 +3,12 @@ INSERT INTO public.tag (name, category) VALUES
   ('Year 2', 'year'),
   ('Year 3', 'year'),
   ('Year 4', 'year'),
-  ('Everyone', 'activity'),
+  ('CPE', 'major'),
+  ('SKE', 'major'),
+  ('Everyone', 'activity');
+  
+-- Mock tag
+INSERT INTO public.tag (name, category) VALUES
   ('CS101', 'course'),
   ('Meeting', 'activity');
 

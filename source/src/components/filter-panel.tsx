@@ -24,6 +24,7 @@ const CATEGORY_GROUPS: Record<string, { label: string; labelKey: string }> = {
   year: { label: "Year", labelKey: "filters.groups.year" },
   course: { label: "Course", labelKey: "filters.groups.course" },
   activity: { label: "Activity", labelKey: "filters.groups.activity" },
+  major: { label: "Major", labelKey: "filters.groups.major" },
 };
 const OTHER_GROUP = { label: "Other", labelKey: "filters.groups.other" };
 

@@ -13,6 +13,7 @@ const CATEGORIES: { value: TagCategory; labelKey: string }[] = [
   { value: "year", labelKey: "filters.groups.year" },
   { value: "course", labelKey: "filters.groups.course" },
   { value: "activity", labelKey: "filters.groups.activity" },
+  { value: "major", labelKey: "filters.groups.major" },
 ];
 
 type TagDraft = { name: string; category: TagCategory | null };

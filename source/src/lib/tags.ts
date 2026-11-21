@@ -9,10 +9,11 @@ export type Tag = {
   category: TagCategory | null;
 };
 
-export const CATEGORY_COLORS: Record<string, string> = {
+export const CATEGORY_COLORS: Record<TagCategory, string> = {
   year: "bg-yellow-200 text-yellow-900",
   course: "bg-teal-200 text-teal-900",
   activity: "bg-purple-200 text-purple-900",
+  major: "bg-blue-200 text-blue-900",
 };
 
 export const DEFAULT_TAG_COLOR = "bg-stone-200 text-stone-700";

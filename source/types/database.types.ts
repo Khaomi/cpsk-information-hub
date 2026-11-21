@@ -930,13 +930,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "resource_link_creator_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_link_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "profile"
@@ -945,13 +938,20 @@ export type Database = {
           {
             foreignKeyName: "resource_link_creator_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_link_creator_id_fkey"
+            columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "resource_link_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profile_with_auth_user"
             referencedColumns: ["id"]
@@ -960,6 +960,7 @@ export type Database = {
       }
     }
     Functions: {
+      can_manage_faq: { Args: { p_faq_id: string }; Returns: boolean }
       get_author_name: { Args: { p_user_id: string }; Returns: string }
       hook_validate_signup_email: { Args: { event: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
@@ -969,7 +970,7 @@ export type Database = {
       contact_role_type: "LECTURER" | "TA"
       contact_status: "DRAFT" | "ACTIVE" | "ARCHIVED"
       faq_status: "UNANSWERED" | "ANSWERED" | "RESOLVED"
-      tag_category: "year" | "course" | "activity"
+      tag_category: "year" | "course" | "activity" | "major"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1101,7 +1102,7 @@ export const Constants = {
       contact_role_type: ["LECTURER", "TA"],
       contact_status: ["DRAFT", "ACTIVE", "ARCHIVED"],
       faq_status: ["UNANSWERED", "ANSWERED", "RESOLVED"],
-      tag_category: ["year", "course", "activity"],
+      tag_category: ["year", "course", "activity", "major"],
     },
   },
 } as const

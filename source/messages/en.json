@@ -38,6 +38,7 @@
       "course": "Course",
       "forWho": "For who",
       "activity": "Activity",
+      "major": "Major",
       "other": "Other"
     },
     "findTag": {

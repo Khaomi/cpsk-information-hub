@@ -1,0 +1,1 @@
+ALTER TYPE public.tag_category ADD VALUE 'major';
